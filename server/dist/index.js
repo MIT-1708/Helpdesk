@@ -39,56 +39,64 @@ app.use((0, cors_1.default)({
 app.all('/api/auth/*', (0, node_1.toNodeHandler)(auth_js_1.auth));
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
-// Require Admin Middleware
-const requireAdmin = async (req, res, next) => {
-    try {
-        const session = await auth_js_1.auth.api.getSession({
-            headers: (0, node_1.fromNodeHeaders)(req.headers),
-        });
-        if (!session) {
-            return res.status(401).json({ error: 'Unauthorized: No active session' });
-        }
-        if (session.user.role !== 'admin') {
-            return res.status(403).json({ error: 'Forbidden: Admin access required' });
-        }
-        req.session = session;
-        next();
-    }
-    catch (error) {
-        console.error('Error in requireAdmin middleware:', error);
-        res.status(500).json({ error: 'Internal server error' });
-    }
+// Helper wrapper to catch errors from async route handlers and forward them to global error middleware
+const asyncHandler = (fn) => (req, res, next) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
 };
-// Get Current User Session (excluding the session token)
-app.get('/api/me', async (req, res) => {
-    try {
-        const session = await auth_js_1.auth.api.getSession({
-            headers: (0, node_1.fromNodeHeaders)(req.headers),
-        });
-        if (!session) {
-            return res.status(401).json({ error: 'Unauthorized' });
-        }
-        // Strip session token
-        const { token, ...sanitizedSession } = session.session;
-        res.json({
-            user: session.user,
-            session: sanitizedSession,
-        });
+// Require Admin Middleware
+const requireAdmin = asyncHandler(async (req, res, next) => {
+    const session = await auth_js_1.auth.api.getSession({
+        headers: (0, node_1.fromNodeHeaders)(req.headers),
+    });
+    if (!session) {
+        return res.status(401).json({ error: 'Unauthorized: No active session' });
     }
-    catch (error) {
-        console.error('Error in /api/me:', error);
-        res.status(500).json({ error: 'Internal server error' });
+    if (session.user.role !== 'admin') {
+        return res.status(403).json({ error: 'Forbidden: Admin access required' });
     }
+    req.session = session;
+    next();
 });
+// Get Current User Session (excluding the session token)
+app.get('/api/me', asyncHandler(async (req, res) => {
+    const session = await auth_js_1.auth.api.getSession({
+        headers: (0, node_1.fromNodeHeaders)(req.headers),
+    });
+    if (!session) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+    // Strip session token
+    const { token, ...sanitizedSession } = session.session;
+    res.json({
+        user: session.user,
+        session: sanitizedSession,
+    });
+}));
 // Admin Router
 const adminRouter = express_1.default.Router();
 adminRouter.use(requireAdmin);
-// Placeholder admin endpoint
-adminRouter.get('/users', async (req, res) => {
-    res.json({ message: 'Welcome Admin' });
-});
+// Fetch all users (Admin only)
+adminRouter.get('/users', asyncHandler(async (req, res) => {
+    const users = await prisma_js_1.default.user.findMany({
+        select: {
+            id: true,
+            email: true,
+            name: true,
+            emailVerified: true,
+            image: true,
+            role: true,
+            createdAt: true,
+            updatedAt: true,
+        },
+        orderBy: {
+            createdAt: 'desc',
+        },
+    });
+    res.json(users);
+}));
 app.use('/api/admin', adminRouter);
 // Health Check Endpoint (checks DB connectivity)
+// Note: We use local try/catch here because we want to return a custom unhealthy JSON payload.
 app.get('/api/health', async (req, res) => {
     try {
         // Attempt simple query to verify database is up
@@ -111,6 +119,11 @@ app.get('/api/health', async (req, res) => {
 // Basic Root Endpoint
 app.get('/', (req, res) => {
     res.send('AI-Powered Ticket Management System API is running.');
+});
+// Global Error Handling Middleware (must be registered last)
+app.use((err, req, res, next) => {
+    console.error('Unhandled Server Error:', err);
+    res.status(500).json({ error: 'Internal server error' });
 });
 app.listen(PORT, () => {
     console.log(`[server] Server running on http://localhost:${PORT}`);

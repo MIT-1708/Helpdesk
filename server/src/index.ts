@@ -40,65 +40,77 @@ app.all('/api/auth/*', toNodeHandler(auth));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Helper wrapper to catch errors from async route handlers and forward them to global error middleware
+const asyncHandler = (fn: (req: express.Request, res: express.Response, next: express.NextFunction) => Promise<any>) =>
+  (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
+
 // Require Admin Middleware
-const requireAdmin = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
-  try {
-    const session = await auth.api.getSession({
-      headers: fromNodeHeaders(req.headers),
-    });
+const requireAdmin = asyncHandler(async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  const session = await auth.api.getSession({
+    headers: fromNodeHeaders(req.headers),
+  });
 
-    if (!session) {
-      return res.status(401).json({ error: 'Unauthorized: No active session' });
-    }
-
-    if (session.user.role !== 'admin') {
-      return res.status(403).json({ error: 'Forbidden: Admin access required' });
-    }
-
-    (req as any).session = session;
-    next();
-  } catch (error) {
-    console.error('Error in requireAdmin middleware:', error);
-    res.status(500).json({ error: 'Internal server error' });
+  if (!session) {
+    return res.status(401).json({ error: 'Unauthorized: No active session' });
   }
-};
+
+  if (session.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Forbidden: Admin access required' });
+  }
+
+  (req as any).session = session;
+  next();
+});
 
 // Get Current User Session (excluding the session token)
-app.get('/api/me', async (req, res) => {
-  try {
-    const session = await auth.api.getSession({
-      headers: fromNodeHeaders(req.headers),
-    });
+app.get('/api/me', asyncHandler(async (req, res) => {
+  const session = await auth.api.getSession({
+    headers: fromNodeHeaders(req.headers),
+  });
 
-    if (!session) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-
-    // Strip session token
-    const { token, ...sanitizedSession } = session.session;
-
-    res.json({
-      user: session.user,
-      session: sanitizedSession,
-    });
-  } catch (error) {
-    console.error('Error in /api/me:', error);
-    res.status(500).json({ error: 'Internal server error' });
+  if (!session) {
+    return res.status(401).json({ error: 'Unauthorized' });
   }
-});
+
+  // Strip session token
+  const { token, ...sanitizedSession } = session.session;
+
+  res.json({
+    user: session.user,
+    session: sanitizedSession,
+  });
+}));
 
 // Admin Router
 const adminRouter = express.Router();
 adminRouter.use(requireAdmin);
 
-// Placeholder admin endpoint
-adminRouter.get('/users', async (req, res) => {
-  res.json({ message: 'Welcome Admin' });
-});
+// Fetch all users (Admin only)
+adminRouter.get('/users', asyncHandler(async (req, res) => {
+  const users = await prisma.user.findMany({
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      emailVerified: true,
+      image: true,
+      role: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+  });
+  res.json(users);
+}));
 
 app.use('/api/admin', adminRouter);
 
 // Health Check Endpoint (checks DB connectivity)
+// Note: We use local try/catch here because we want to return a custom unhealthy JSON payload.
 app.get('/api/health', async (req, res) => {
   try {
     // Attempt simple query to verify database is up
@@ -121,6 +133,12 @@ app.get('/api/health', async (req, res) => {
 // Basic Root Endpoint
 app.get('/', (req, res) => {
   res.send('AI-Powered Ticket Management System API is running.');
+});
+
+// Global Error Handling Middleware (must be registered last)
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('Unhandled Server Error:', err);
+  res.status(500).json({ error: 'Internal server error' });
 });
 
 app.listen(PORT, () => {

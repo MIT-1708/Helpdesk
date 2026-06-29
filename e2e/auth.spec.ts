@@ -90,7 +90,11 @@ test.describe('Authentication & Role-Based Access Control (RBAC)', () => {
       // Navigate to /users via link
       await usersLink.click();
       await expect(page).toHaveURL('/users');
-      await expect(page.locator('text=User Management')).toBeVisible();
+      await expect(page.locator('text=User Directory')).toBeVisible();
+
+      // Verify seeded users are visible in the directory
+      await expect(page.locator('text=System Administrator')).toBeVisible();
+      await expect(page.locator('text=Support Agent')).toBeVisible();
     });
 
     test('should authenticate Agent, display role label and hide Users page link', async ({ page }) => {
