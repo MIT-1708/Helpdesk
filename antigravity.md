@@ -11,5 +11,25 @@ This file serves as a memory/rules reference for the Antigravity agent when work
   2. Call `query-docs` with the resolved library ID and your specific query to retrieve current API specs, patterns, and code snippets.
 - **Goal**: Prevent the use of outdated patterns or deprecated library features.
 
+### 2. Frontend Theming and Component Standards
+- **Component Suite**: The client uses **Shadcn UI** components (located in `client/src/components/ui/`).
+- **Styling system**: Uses **Tailwind CSS v4** with a native CSS `@theme inline` block defined in [index.css](file:///c:/Users/allle/OneDrive/Desktop/Helpdesk/client/src/index.css).
+- **Theme Palette**: The project is configured with a default light mode (white background) and custom **Orange** accents:
+  - Primary color: `oklch(0.608 0.207 48.07)`
+  - Active elements, buttons, and loading states must use semantic colors (`bg-primary`, `text-foreground`, `border-border`) rather than hardcoded indigo/blue classes.
+- **Path Aliases**: Path resolution `@/` points to `client/src/`. To avoid `tsc` deprecation errors in TypeScript 5.5+, `"baseUrl"` has been omitted from `tsconfig.json` and `tsconfig.app.json` while keeping relative path mappings.
+
+### 3. Authentication Architecture
+- **Framework**: Powered by **Better Auth** (v1.x).
+- **Database Adapter**: Backed by **Prisma Adapter** (`prismaAdapter`) connected to PostgreSQL.
+- **Methods**: **Email and Password** credentials.
+  - Sign-up is disabled on the backend by default (`disableSignUp: true` unless overridden by `BYPASS_DISABLE_SIGNUP="true"` env variable).
+- **Custom Schema Fields**:
+  - The `user` object has a custom `role` field (string, defaults to `"agent"`, values: `"admin"` or `"agent"`).
+- **Client API Integration**:
+  - Configured in [auth-client.ts](file:///c:/Users/allle/OneDrive/Desktop/Helpdesk/client/src/lib/auth-client.ts) (connects to server at `http://localhost:5000`).
+  - Utilizes `inferAdditionalFields<typeof auth>()` to properly propagate and type-check the custom `role` field on the client side.
+  - Exposes hooks/methods: `useSession`, `signIn`, `signUp`, `signOut`.
+
 ---
-*Created per user request to maintain project memory for Antigravity.*
+*Last Updated: 2026-06-29 per user request to maintain project memory for Antigravity.*

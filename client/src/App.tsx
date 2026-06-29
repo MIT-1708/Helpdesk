@@ -9,18 +9,18 @@ function Layout({ children }: { children: React.ReactNode }) {
   const user = sessionState?.user
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-indigo-500/30">
+    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-primary/30">
       {/* Top Navbar */}
-      <header className="border-b border-slate-900 bg-slate-950/60 backdrop-blur-md sticky top-0 z-50 px-6 py-4 flex items-center justify-between">
+      <header className="border-b border-border bg-background/60 backdrop-blur-md sticky top-0 z-50 px-6 py-4 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-3 group">
-          <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/20 group-hover:scale-105 transition-all">
-            <Sparkles className="h-5 w-5 text-white" />
+          <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-primary to-amber-500 flex items-center justify-center shadow-lg shadow-primary/20 group-hover:scale-105 transition-all">
+            <Sparkles className="h-5 w-5 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="text-lg font-bold bg-gradient-to-r from-white via-slate-100 to-slate-300 bg-clip-text text-transparent">
+            <h1 className="text-lg font-bold text-foreground">
               Helpdesk AI
             </h1>
-            <p className="text-[10px] text-slate-400 font-medium tracking-wider uppercase">
+            <p className="text-[10px] text-muted-foreground font-medium tracking-wider uppercase">
               Management Portal
             </p>
           </div>
@@ -31,13 +31,13 @@ function Layout({ children }: { children: React.ReactNode }) {
           {!isPending && (
             user ? (
               <div className="flex items-center gap-4">
-                <div className="flex items-center gap-3 pl-4 border-l border-slate-800">
-                  <div className="h-8 w-8 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-300">
+                <div className="flex items-center gap-3 pl-4 border-l border-border">
+                  <div className="h-8 w-8 rounded-lg bg-muted border border-border flex items-center justify-center text-muted-foreground">
                     <UserIcon className="h-4 w-4" />
                   </div>
                   <div className="flex flex-col text-left">
-                    <span className="text-xs font-semibold text-slate-200 leading-none">{user.name}</span>
-                    <span className="text-[10px] text-indigo-400 capitalize mt-0.5 font-medium leading-none">{user.role}</span>
+                    <span className="text-xs font-semibold text-foreground leading-none">{user.name}</span>
+                    <span className="text-[10px] text-primary capitalize mt-0.5 font-medium leading-none">{user.role}</span>
                   </div>
                 </div>
                 <button
@@ -45,7 +45,7 @@ function Layout({ children }: { children: React.ReactNode }) {
                     await signOut()
                     window.location.href = '/login'
                   }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-850 bg-slate-900/60 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800/80 hover:border-slate-700/60 transition-all cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-muted/50 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-all cursor-pointer"
                 >
                   <LogOut className="h-3.5 w-3.5" />
                   <span>Sign Out</span>
@@ -54,7 +54,7 @@ function Layout({ children }: { children: React.ReactNode }) {
             ) : (
               <Link
                 to="/login"
-                className="px-4 py-1.5 rounded-lg bg-indigo-500 hover:bg-indigo-600 text-xs font-semibold text-white shadow-lg shadow-indigo-500/10 hover:shadow-indigo-500/25 transition-all"
+                className="px-4 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-xs font-semibold text-primary-foreground shadow-lg shadow-primary/10 hover:shadow-primary/25 transition-all"
               >
                 Sign In
               </Link>
@@ -69,8 +69,8 @@ function Layout({ children }: { children: React.ReactNode }) {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-900 py-6 text-center text-xs text-slate-500 bg-slate-950">
-        &copy; {new Date().getFullYear()} Helpdesk AI Ticket Management System. All rights reserved.
+      <footer className="border-t border-border py-6 text-center text-xs text-muted-foreground bg-background">
+        &copy; {new Date().getFullYear()} Helpdesk AI <span className="text-primary font-medium">Ticket Management System</span>. All rights reserved.
       </footer>
     </div>
   )
@@ -82,9 +82,9 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (isPending) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-6 bg-slate-950 min-h-[calc(100vh-140px)]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-400 mb-2"></div>
-        <span className="text-xs text-slate-500">Verifying session...</span>
+      <div className="flex-1 flex flex-col items-center justify-center p-6 bg-background min-h-[calc(100vh-140px)]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-2"></div>
+        <span className="text-xs text-muted-foreground">Verifying session...</span>
       </div>
     )
   }
@@ -102,8 +102,8 @@ function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
 
   if (isPending) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-6 bg-slate-950 min-h-[calc(100vh-140px)]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-400 mb-2"></div>
+      <div className="flex-1 flex flex-col items-center justify-center p-6 bg-background min-h-[calc(100vh-140px)]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-2"></div>
       </div>
     )
   }
@@ -119,7 +119,7 @@ function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
 function HomePage() {
   return (
     <div className="flex-1 flex items-center justify-center">
-      <h1 className="text-4xl font-bold text-slate-100">Desktop</h1>
+      <h1 className="text-4xl font-bold text-foreground">Desktop</h1>
     </div>
   )
 }
