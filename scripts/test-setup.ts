@@ -25,3 +25,17 @@ if (dbPush.status !== 0) {
 }
 
 console.log('Test database schema prepared successfully.');
+
+console.log('Seeding test database...');
+const dbSeed = spawnSync('bun', ['run', 'db:seed'], {
+  cwd: path.resolve(dirname, '../server'),
+  env: { ...process.env, DATABASE_URL: process.env.DATABASE_URL },
+  stdio: 'inherit',
+});
+
+if (dbSeed.status !== 0) {
+  console.error('Failed to seed test database.');
+  process.exit(dbSeed.status || 1);
+}
+
+console.log('Test database seeded successfully.');

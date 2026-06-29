@@ -1,17 +1,12 @@
 import { spawnSync } from 'child_process';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const filename = fileURLToPath(import.meta.url);
-const dirname = path.dirname(filename);
 
 async function globalSetup() {
   console.log('\n=== PLAYWRIGHT GLOBAL SETUP ===');
   console.log('Starting test database preparation...');
 
-  // Spawn the test-setup script in the root directory
+  // Spawn the test-setup script in the root directory using process.cwd()
   const setup = spawnSync('bun', ['run', 'test:setup'], {
-    cwd: path.resolve(dirname, '..'),
+    cwd: process.cwd(),
     stdio: 'inherit',
   });
 

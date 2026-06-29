@@ -10,7 +10,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: 'http://localhost:5174',
     trace: 'on-first-retry',
   },
   projects: [
@@ -38,10 +38,13 @@ export default defineConfig({
       },
     },
     {
-      command: 'bun run dev',
+      command: 'bun run dev --port 5174',
       cwd: './client',
-      port: 5173,
+      port: 5174,
       reuseExistingServer: !process.env.CI,
+      env: {
+        VITE_API_URL: 'http://localhost:5001',
+      },
     },
   ],
 });

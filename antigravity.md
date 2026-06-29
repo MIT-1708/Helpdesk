@@ -40,14 +40,6 @@ This file serves as a memory/rules reference for the Antigravity agent when work
   - The default admin account is seeded via `bun prisma/seed.ts` (requires `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `.env`).
   - An agent user is available for testing (`agent@example.com` / `password123` with role `"agent"`).
 
-### 5. Testing & Playwright Configuration
-- **Testing environment**: Configure via [server/.env.test](file:///c:/Users/allle/OneDrive/Desktop/Helpdesk/server/.env.test) (uses `helpdesk_test` database and port `5001`).
-- **Playwright setup**: Configured in [playwright.config.ts](file:///c:/Users/allle/OneDrive/Desktop/Helpdesk/playwright.config.ts) to run server and client during tests. Utilizes global lifecycle hooks [global-setup.ts](file:///c:/Users/allle/OneDrive/Desktop/Helpdesk/e2e/global-setup.ts) and [global-teardown.ts](file:///c:/Users/allle/OneDrive/Desktop/Helpdesk/e2e/global-teardown.ts).
-- **Database Preparation**: Triggered automatically on test startup via Playwright global setup (which calls [scripts/test-setup.ts](file:///c:/Users/allle/OneDrive/Desktop/Helpdesk/scripts/test-setup.ts)). Can also be run manually with `bun run test:setup`.
-- **Scripts**:
-  - `bun run test:setup` - Sets up/resets the test database.
-  - `bun run test:e2e` - Starts E2E test execution.
-  - `bun run test:install-browsers` - Installs Playwright browser dependencies.
 
 ---
 *Last Updated: 2026-06-29 per user request to maintain project memory for Antigravity.*
