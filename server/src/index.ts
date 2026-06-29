@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
 import prisma from './prisma.js';
 import { toNodeHandler, fromNodeHeaders } from 'better-auth/node';
 import { auth } from './auth.js';
@@ -9,7 +10,8 @@ import { auth } from './auth.js';
 import { validateEnv } from './utils/env-validator.js';
 validateEnv();
 
-dotenv.config();
+const envFile = process.env.NODE_ENV === 'test' ? '.env.test' : '.env';
+dotenv.config({ path: path.resolve(process.cwd(), envFile) });
 
 const app = express();
 const PORT = process.env.PORT || 5000;

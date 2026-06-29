@@ -9,6 +9,13 @@
   "scripts": {
     "dev:server": "bun --cwd server dev",
     "dev:client": "bun --cwd client dev",
-    "install:all": "bun install"
+    "install:all": "bun install",
+    "test:setup": "bun scripts/test-setup.ts",
+    "test:e2e": "bun run test:setup && bunx playwright test",
+    "test:install-browsers": "bunx playwright install"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.1",
+    "dotenv": "^17.4.2"
   }
 }

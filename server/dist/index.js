@@ -6,13 +6,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const dotenv_1 = __importDefault(require("dotenv"));
+const path_1 = __importDefault(require("path"));
 const prisma_js_1 = __importDefault(require("./prisma.js"));
 const node_1 = require("better-auth/node");
 const auth_js_1 = require("./auth.js");
 // Validate environment variables first
 const env_validator_js_1 = require("./utils/env-validator.js");
 (0, env_validator_js_1.validateEnv)();
-dotenv_1.default.config();
+const envFile = process.env.NODE_ENV === 'test' ? '.env.test' : '.env';
+dotenv_1.default.config({ path: path_1.default.resolve(process.cwd(), envFile) });
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 5000;
 // Dynamic CORS configuration restricted to trusted origins only

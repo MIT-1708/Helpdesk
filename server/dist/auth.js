@@ -27,7 +27,7 @@ exports.auth = (0, better_auth_1.betterAuth)({
         },
     },
     rateLimit: {
-        enabled: true,
+        enabled: process.env.NODE_ENV === "production" || process.env.ENABLE_RATE_LIMIT === "true",
         storage: "memory",
         window: 60, // 60 seconds
         max: 50,

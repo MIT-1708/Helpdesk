@@ -5,7 +5,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.validateEnv = validateEnv;
 const dotenv_1 = __importDefault(require("dotenv"));
-dotenv_1.default.config();
+const path_1 = __importDefault(require("path"));
+// Load .env.test if running in test environment
+const envFile = process.env.NODE_ENV === 'test' ? '.env.test' : '.env';
+dotenv_1.default.config({ path: path_1.default.resolve(process.cwd(), envFile) });
 const REQUIRED_ENV_VARS = [
     'DATABASE_URL',
     'BETTER_AUTH_SECRET',

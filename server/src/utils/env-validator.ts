@@ -1,5 +1,9 @@
 import dotenv from 'dotenv';
-dotenv.config();
+import path from 'path';
+
+// Load .env.test if running in test environment
+const envFile = process.env.NODE_ENV === 'test' ? '.env.test' : '.env';
+dotenv.config({ path: path.resolve(process.cwd(), envFile) });
 
 const REQUIRED_ENV_VARS = [
   'DATABASE_URL',
