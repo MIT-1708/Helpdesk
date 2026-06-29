@@ -31,5 +31,12 @@ This file serves as a memory/rules reference for the Antigravity agent when work
   - Utilizes `inferAdditionalFields<typeof auth>()` to properly propagate and type-check the custom `role` field on the client side.
   - Exposes hooks/methods: `useSession`, `signIn`, `signUp`, `signOut`.
 
+### 4. Admin Routing & User Management
+- **Admin-only Page**: The `/users` route is implemented at [Users.tsx](file:///c:/Users/allle/OneDrive/Desktop/Helpdesk/client/src/pages/Users.tsx).
+- **Admin Routing Protection**: The client routing uses a custom `AdminRoute` wrapper inside [App.tsx](file:///c:/Users/allle/OneDrive/Desktop/Helpdesk/client/src/App.tsx) which restricts access to users with `role === 'admin'`. Unauthorized users are redirected to the homepage (`/`), and unauthenticated users are redirected to `/login`.
+- **Database Seeding & Users**:
+  - The default admin account is seeded via `bun prisma/seed.ts` (requires `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `.env`).
+  - An agent user is available for testing (`agent@example.com` / `password123` with role `"agent"`).
+
 ---
 *Last Updated: 2026-06-29 per user request to maintain project memory for Antigravity.*

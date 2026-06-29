@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Link, Navigate } from 'react-router-dom'
 import { Sparkles, LogOut, User as UserIcon } from 'lucide-react'
 import { useSession, signOut } from './lib/auth-client'
 import Login from './pages/Login'
+import Users from './pages/Users'
 
 // Layout component
 function Layout({ children }: { children: React.ReactNode }) {
@@ -27,6 +28,14 @@ function Layout({ children }: { children: React.ReactNode }) {
         </Link>
         
         <div className="flex items-center gap-5">
+          {!isPending && user?.role === 'admin' && (
+            <Link
+              to="/users"
+              className="text-xs font-semibold text-muted-foreground hover:text-foreground transition-all px-3 py-1.5 rounded-lg hover:bg-muted/50"
+            >
+              Users
+            </Link>
+          )}
           {/* User Section in Nav */}
           {!isPending && (
             user ? (
@@ -96,6 +105,30 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+// Admin-only Route Wrapper
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { data: sessionState, isPending } = useSession()
+
+  if (isPending) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center p-6 bg-background min-h-[calc(100vh-140px)]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-2"></div>
+        <span className="text-xs text-muted-foreground">Verifying session...</span>
+      </div>
+    )
+  }
+
+  if (!sessionState?.user) {
+    return <Navigate to="/login" replace />
+  }
+
+  if (sessionState.user.role !== 'admin') {
+    return <Navigate to="/" replace />
+  }
+
+  return <>{children}</>
+}
+
 // Public-only route (redirects to home if already logged in)
 function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
   const { data: sessionState, isPending } = useSession()
@@ -143,6 +176,14 @@ function App() {
               <PublicOnlyRoute>
                 <Login />
               </PublicOnlyRoute>
+            } 
+          />
+          <Route 
+            path="/users" 
+            element={
+              <AdminRoute>
+                <Users />
+              </AdminRoute>
             } 
           />
           {/* Fallback route */}
