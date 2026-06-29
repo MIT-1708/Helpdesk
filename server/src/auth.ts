@@ -1,5 +1,6 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
+import { createAuthMiddleware } from "better-auth/api";
 import prisma from "./prisma.js";
 
 export const auth = betterAuth({
@@ -19,6 +20,36 @@ export const auth = betterAuth({
         defaultValue: "agent",
       },
     },
+  },
+  rateLimit: {
+    enabled: true,
+    storage: "memory",
+    window: 60, // 60 seconds
+    max: 50,
+    customRules: {
+      "/sign-in/email": {
+        window: 60,
+        max: 10,
+      },
+      "/sign-up/email": {
+        window: 60,
+        max: 5,
+      },
+    },
+  },
+  hooks: {
+    after: createAuthMiddleware(async (ctx) => {
+      if (ctx.path === "/get-session" && ctx.context.returned) {
+        const returned = ctx.context.returned as any;
+        if (returned && returned.session) {
+          const { token, ...sanitizedSession } = returned.session;
+          return ctx.json({
+            ...returned,
+            session: sanitizedSession,
+          });
+        }
+      }
+    }),
   },
 });
 
