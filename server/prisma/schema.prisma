@@ -18,7 +18,7 @@ model User {
   name          String
   emailVerified Boolean   @default(false)
   image         String?
-  role          Role      @default(agent)
+  role          String    @default("agent")
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   sessions      Session[]
@@ -26,7 +26,6 @@ model User {
 
   @@map("user")
 }
-
 
 model Session {
   id        String   @id
