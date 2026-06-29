@@ -6,3 +6,126 @@ datasource db {
 generator client {
   provider = "prisma-client-js"
 }
+
+enum Role {
+  ADMIN
+  AGENT
+}
+
+enum TicketStatus {
+  OPEN
+  RESOLVED
+  CLOSED
+}
+
+enum TicketCategory {
+  GENERAL
+  TECHNICAL
+  REFUND
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum SenderRole {
+  CUSTOMER
+  AGENT
+  ADMIN
+  SYSTEM
+}
+
+model User {
+  id            String    @id
+  email         String    @unique
+  name          String
+  emailVerified Boolean   @default(false)
+  image         String?
+  role          Role      @default(AGENT)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+  tickets       Ticket[]
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+}
+
+model Ticket {
+  id           String         @id @default(uuid())
+  subject      String
+  body         String
+  status       TicketStatus   @default(OPEN)
+  category     TicketCategory @default(GENERAL)
+  priority     TicketPriority @default(MEDIUM)
+  summary      String?
+  assignedToId String?
+  assignedTo   User?          @relation(fields: [assignedToId], references: [id])
+  messages     Message[]
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+}
+
+model Message {
+  id          String     @id @default(uuid())
+  ticketId    String
+  ticket      Ticket     @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  senderName  String
+  senderEmail String
+  senderRole  SenderRole
+  body        String
+  createdAt   DateTime   @default(now())
+}
+
+model KnowledgeBase {
+  id        String         @id @default(uuid())
+  question  String
+  answer    String
+  category  TicketCategory @default(GENERAL)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+}
