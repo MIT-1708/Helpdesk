@@ -7,48 +7,18 @@ generator client {
   provider = "prisma-client-js"
 }
 
-enum Role {
-  ADMIN
-  AGENT
-}
-
-enum TicketStatus {
-  OPEN
-  RESOLVED
-  CLOSED
-}
-
-enum TicketCategory {
-  GENERAL
-  TECHNICAL
-  REFUND
-}
-
-enum TicketPriority {
-  LOW
-  MEDIUM
-  HIGH
-}
-
-enum SenderRole {
-  CUSTOMER
-  AGENT
-  ADMIN
-  SYSTEM
-}
-
 model User {
   id            String    @id
   email         String    @unique
   name          String
   emailVerified Boolean   @default(false)
   image         String?
-  role          Role      @default(AGENT)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   sessions      Session[]
   accounts      Account[]
-  tickets       Ticket[]
+
+  @@map("user")
 }
 
 model Session {
@@ -63,6 +33,7 @@ model Session {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@map("session")
 }
 
 model Account {
@@ -82,6 +53,7 @@ model Account {
   updatedAt             DateTime  @updatedAt
 
   @@index([userId])
+  @@map("account")
 }
 
 model Verification {
@@ -93,39 +65,5 @@ model Verification {
   updatedAt  DateTime @updatedAt
 
   @@index([identifier])
-}
-
-model Ticket {
-  id           String         @id @default(uuid())
-  subject      String
-  body         String
-  status       TicketStatus   @default(OPEN)
-  category     TicketCategory @default(GENERAL)
-  priority     TicketPriority @default(MEDIUM)
-  summary      String?
-  assignedToId String?
-  assignedTo   User?          @relation(fields: [assignedToId], references: [id])
-  messages     Message[]
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-}
-
-model Message {
-  id          String     @id @default(uuid())
-  ticketId    String
-  ticket      Ticket     @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  senderName  String
-  senderEmail String
-  senderRole  SenderRole
-  body        String
-  createdAt   DateTime   @default(now())
-}
-
-model KnowledgeBase {
-  id        String         @id @default(uuid())
-  question  String
-  answer    String
-  category  TicketCategory @default(GENERAL)
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
+  @@map("verification")
 }
