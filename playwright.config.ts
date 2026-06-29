@@ -8,7 +8,8 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: 'html',
+  reporter: [['html', { outputFolder: 'e2e/playwright-report' }]],
+  outputDir: './e2e/test-results',
   use: {
     baseURL: 'http://localhost:5174',
     trace: 'on-first-retry',
