@@ -1,5 +1,5 @@
 import prisma from '../src/prisma.js';
-import dotenv from 'dotenv';
+import * as dotenv from 'dotenv';
 
 dotenv.config();
 
@@ -36,8 +36,8 @@ async function main() {
     console.log(`Creating admin user: ${email}`);
     const result = await auth.api.signUpEmail({
       body: {
-        email,
-        password,
+        email: email!,
+        password: password!,
         name: 'System Administrator',
         role: 'admin',
       },
