@@ -8,5 +8,17 @@ export const auth = betterAuth({
   }),
   emailAndPassword: {
     enabled: true,
+    disableSignUp: process.env.BYPASS_DISABLE_SIGNUP === "true" ? false : true,
+  },
+  user: {
+    additionalFields: {
+      role: {
+        type: "string",
+        required: false,
+        defaultValue: "agent",
+      },
+    },
   },
 });
+
+
