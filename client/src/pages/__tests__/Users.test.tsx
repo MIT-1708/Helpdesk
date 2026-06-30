@@ -186,4 +186,111 @@ describe('Users Component', () => {
     
     expect(axios.get).toHaveBeenCalledTimes(2);
   });
+
+  it('opens and closes the create user modal via backdrop click and escape key', async () => {
+    vi.mocked(axios.get).mockResolvedValue({ data: mockUsers });
+    const user = userEvent.setup();
+    
+    renderWithQueryClient(<Users />);
+    
+    await waitFor(() => {
+      expect(screen.getByText('Admin User')).toBeInTheDocument();
+    });
+    
+    // Verify modal is not shown initially
+    expect(screen.queryByRole('heading', { name: 'Create New User' })).not.toBeInTheDocument();
+    
+    // Open modal
+    const newUserButton = screen.getByRole('button', { name: /New User/i });
+    await user.click(newUserButton);
+    
+    expect(screen.getByRole('heading', { name: 'Create New User' })).toBeInTheDocument();
+    
+    // Close via clicking outside (backdrop)
+    const backdrop = screen.getByTestId('modal-backdrop');
+    await user.click(backdrop);
+    
+    await waitFor(() => {
+      expect(screen.queryByRole('heading', { name: 'Create New User' })).not.toBeInTheDocument();
+    });
+    
+    // Open again
+    await user.click(newUserButton);
+    expect(screen.getByRole('heading', { name: 'Create New User' })).toBeInTheDocument();
+    
+    // Close via Escape key
+    await user.keyboard('{Escape}');
+    
+    await waitFor(() => {
+      expect(screen.queryByRole('heading', { name: 'Create New User' })).not.toBeInTheDocument();
+    });
+  });
+
+  it('validates form inputs and submits successfully', async () => {
+    vi.mocked(axios.get).mockResolvedValue({ data: mockUsers });
+    vi.mocked(axios.post).mockResolvedValue({ data: { id: 'new-user', name: 'New Agent', email: 'newagent@example.com', role: 'agent' } });
+    
+    const user = userEvent.setup();
+    renderWithQueryClient(<Users />);
+    
+    await waitFor(() => {
+      expect(screen.getByText('Admin User')).toBeInTheDocument();
+    });
+    
+    // Open modal
+    const newUserButton = screen.getByRole('button', { name: /New User/i });
+    await user.click(newUserButton);
+    
+    const nameInput = screen.getByPlaceholderText('John Doe');
+    const emailInput = screen.getByPlaceholderText('john@example.com');
+    const passwordInput = screen.getByPlaceholderText('••••••••');
+    const submitButton = screen.getByRole('button', { name: 'Create User' });
+    
+    // 1. Submit empty form
+    await user.click(submitButton);
+    
+    await waitFor(() => {
+      expect(screen.getByText('Name must be at least 3 characters.')).toBeInTheDocument();
+      expect(screen.getByText('Email is required.')).toBeInTheDocument();
+      expect(screen.getByText('Password must be at least 8 characters.')).toBeInTheDocument();
+    });
+    
+    // 2. Type invalid values
+    await user.type(nameInput, 'Jo');
+    await user.type(emailInput, 'invalid');
+    await user.type(passwordInput, '123');
+    await user.click(submitButton);
+    
+    await waitFor(() => {
+      expect(screen.getByText('Name must be at least 3 characters.')).toBeInTheDocument();
+      expect(screen.getByText('Invalid email format.')).toBeInTheDocument();
+      expect(screen.getByText('Password must be at least 8 characters.')).toBeInTheDocument();
+    });
+    
+    // 3. Clear and enter valid values
+    await user.clear(nameInput);
+    await user.type(nameInput, 'John Doe');
+    await user.clear(emailInput);
+    await user.type(emailInput, 'john@example.com');
+    await user.clear(passwordInput);
+    await user.type(passwordInput, 'securepassword123');
+    
+    await user.click(submitButton);
+    
+    await waitFor(() => {
+      expect(axios.post).toHaveBeenCalledWith(
+        expect.stringContaining('/api/admin/users'),
+        {
+          name: 'John Doe',
+          email: 'john@example.com',
+          password: 'securepassword123',
+        },
+        expect.objectContaining({ withCredentials: true })
+      );
+    });
+    
+    await waitFor(() => {
+      expect(screen.queryByRole('heading', { name: 'Create New User' })).not.toBeInTheDocument();
+    });
+  });
 });

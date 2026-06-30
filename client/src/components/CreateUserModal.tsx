@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { createUserSchema, type CreateUserFormData } from '@helpdesk/core';
@@ -36,6 +36,21 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUs
     onClose();
   };
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen]);
+
   const handleCreateUserSubmit = async (data: CreateUserFormData) => {
     setCreateError(null);
     setCreateLoading(true);
@@ -63,8 +78,15 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUs
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-card border border-border rounded-2xl w-full max-w-md p-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+    <div 
+      onClick={handleClose}
+      className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      data-testid="modal-backdrop"
+    >
+      <div 
+        onClick={(e) => e.stopPropagation()}
+        className="bg-card border border-border rounded-2xl w-full max-w-md p-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200"
+      >
         {/* Close Button */}
         <button
           onClick={handleClose}
