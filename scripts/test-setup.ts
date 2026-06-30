@@ -13,7 +13,7 @@ console.log('Preparing test database...');
 console.log(`Target database URL: ${process.env.DATABASE_URL}`);
 
 // Run prisma db push to apply migrations to the test database
-const dbPush = spawnSync('bunx', ['prisma', 'db', 'push', '--schema=prisma/schema.prisma'], {
+const dbPush = spawnSync('bunx', ['prisma', 'db', 'push', '--schema=prisma/schema.prisma', '--accept-data-loss', '--force-reset'], {
   cwd: path.resolve(dirname, '../server'),
   env: { ...process.env, DATABASE_URL: process.env.DATABASE_URL },
   stdio: 'inherit',

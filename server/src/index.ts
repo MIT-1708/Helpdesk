@@ -7,6 +7,7 @@ import { toNodeHandler, fromNodeHeaders } from 'better-auth/node';
 import { auth, adminAuthHelper } from './auth.js';
 import { z } from 'zod';
 import usersRouter from './routes/users.js';
+import inboundRouter from './routes/inbound.js';
 
 // Validate environment variables first
 import { validateEnv } from './utils/env-validator.js';
@@ -93,6 +94,7 @@ adminRouter.use(requireAdmin);
 adminRouter.use('/users', usersRouter);
 
 app.use('/api/admin', adminRouter);
+app.use('/api/webhooks', inboundRouter);
 
 // Health Check Endpoint (checks DB connectivity)
 // Note: We use local try/catch here because we want to return a custom unhealthy JSON payload.

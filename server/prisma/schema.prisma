@@ -1,15 +1,10 @@
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-
 generator client {
   provider = "prisma-client-js"
 }
 
-enum Role {
-  admin
-  agent
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -18,13 +13,13 @@ model User {
   name          String
   emailVerified Boolean   @default(false)
   image         String?
-  role          String    @default("agent")
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  role          String    @default("agent")
   deletedAt     DateTime?
-  sessions      Session[]
   accounts      Account[]
-
+  sessions      Session[]
+  tickets       Ticket[]
 
   @@map("user")
 }
@@ -49,7 +44,6 @@ model Account {
   accountId             String
   providerId            String
   userId                String
-  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   accessToken           String?
   refreshToken          String?
   idToken               String?
@@ -59,6 +53,7 @@ model Account {
   password              String?
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@map("account")
@@ -75,3 +70,53 @@ model Verification {
   @@index([identifier])
   @@map("verification")
 }
+
+model Ticket {
+  id           Int             @id @default(autoincrement())
+  subject      String
+  body         String
+  bodyHtml     String?
+  status       TicketStatus    @default(open)
+  category     TicketCategory?
+  senderName   String?
+  senderEmail  String
+  assignedToId String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  messages     Message[]
+  assignedTo   User?           @relation(fields: [assignedToId], references: [id])
+
+  @@map("ticket")
+}
+
+model Message {
+  id          String   @id @default(uuid())
+  ticketId    Int
+  sender      String
+  senderEmail String
+  body        String
+  aiDraft     String?
+  createdAt   DateTime @default(now())
+  ticket      Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+  @@map("message")
+}
+
+enum Role {
+  admin
+  agent
+}
+
+enum TicketStatus {
+  open
+  resolved
+  closed
+}
+
+enum TicketCategory {
+  GENERAL   @map("General Question")
+  TECHNICAL @map("Technical Question")
+  REFUND    @map("Refund Request")
+}
+
