@@ -40,6 +40,13 @@ This file serves as a memory/rules reference for the Antigravity agent when work
   - The default admin account is seeded via `bun prisma/seed.ts` (requires `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `.env`).
   - An agent user is available for testing (`agent@example.com` / `password123` with role `"agent"`).
 
+### 5. Data Fetching & Query Management
+- **Libraries**: Use **Axios** (`axios`) and **TanStack Query** (`@tanstack/react-query`) for API requests and state management instead of native `fetch` and custom `useEffect` hooks.
+- **Credentials**: Ensure `withCredentials: true` is configured in Axios requests to transmit session-based cookies.
+- **State Management**:
+  - Wrap components inside `<QueryClientProvider client={queryClient}>` at the application root ([App.tsx](file:///c:/Users/allle/OneDrive/Desktop/Helpdesk/client/src/App.tsx)).
+  - Use `useQuery` for fetching. For loading states, use `isLoading` for the initial skeleton load, and use `isFetching` for handling background refetches / Refresh button loaders.
+  - Handle errors via the `error.message` property on the returned query error object.
 
 ---
-*Last Updated: 2026-06-29 per user request to maintain project memory for Antigravity.*
+*Last Updated: 2026-06-30 per user request to maintain project memory for Antigravity.*

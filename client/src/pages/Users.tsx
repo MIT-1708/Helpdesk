@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Users as UsersIcon, Search, Shield, Calendar, CheckCircle2, XCircle, RefreshCw, AlertCircle } from 'lucide-react';
 import { Card, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import axios from 'axios';
+import { useQuery } from '@tanstack/react-query';
 
 interface User {
   id: string;
@@ -15,39 +17,27 @@ interface User {
   updatedAt: string;
 }
 
+const fetchUsersData = async () => {
+  try {
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    const response = await axios.get(`${baseUrl}/api/admin/users`, {
+      withCredentials: true,
+    });
+    return response.data;
+  } catch (err: any) {
+    console.error('Error fetching users:', err);
+    throw new Error(err.response?.data?.message || err.message || 'An unexpected error occurred while fetching users.');
+  }
+};
+
 export default function Users() {
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'agent'>('all');
 
-  const fetchUsers = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const response = await fetch(`${baseUrl}/api/admin/users`, {
-        credentials: 'include',
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch: ${response.status} ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      setUsers(data);
-    } catch (err: any) {
-      console.error('Error fetching users:', err);
-      setError(err.message || 'An unexpected error occurred while fetching users.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchUsers();
-  }, []);
+  const { data: users = [], isLoading: loading, isFetching, error, refetch: fetchUsers } = useQuery<User[]>({
+    queryKey: ['users'],
+    queryFn: fetchUsersData,
+  });
 
   const filteredUsers = users.filter((user) => {
     const matchesSearch = 
@@ -101,11 +91,11 @@ export default function Users() {
             <Button 
               variant="outline" 
               size="sm" 
-              onClick={fetchUsers} 
+              onClick={() => fetchUsers()} 
               className="gap-2 cursor-pointer"
-              disabled={loading}
+              disabled={isFetching}
             >
-              <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`} />
               <span>Refresh</span>
             </Button>
           </div>
@@ -166,9 +156,9 @@ export default function Users() {
             <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
             <div className="flex-1 space-y-1">
               <p className="font-semibold text-sm">Failed to load directory</p>
-              <p className="text-xs opacity-90">{error}</p>
+              <p className="text-xs opacity-90">{error.message}</p>
             </div>
-            <Button size="sm" variant="outline" onClick={fetchUsers} className="border-destructive/25 text-destructive hover:bg-destructive/10 cursor-pointer">
+            <Button size="sm" variant="outline" onClick={() => fetchUsers()} className="border-destructive/25 text-destructive hover:bg-destructive/10 cursor-pointer">
               Retry
             </Button>
           </div>

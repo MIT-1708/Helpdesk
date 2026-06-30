@@ -3,6 +3,9 @@ import { Sparkles, LogOut, User as UserIcon } from 'lucide-react'
 import { useSession, signOut } from './lib/auth-client'
 import Login from './pages/Login'
 import Users from './pages/Users'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+
+const queryClient = new QueryClient()
 
 // Layout component
 function Layout({ children }: { children: React.ReactNode }) {
@@ -159,38 +162,40 @@ function HomePage() {
 
 function App() {
   return (
-    <BrowserRouter>
-      <Layout>
-        <Routes>
-          <Route 
-            path="/" 
-            element={
-              <ProtectedRoute>
-                <HomePage />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/login" 
-            element={
-              <PublicOnlyRoute>
-                <Login />
-              </PublicOnlyRoute>
-            } 
-          />
-          <Route 
-            path="/users" 
-            element={
-              <AdminRoute>
-                <Users />
-              </AdminRoute>
-            } 
-          />
-          {/* Fallback route */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Layout>
-    </BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <Layout>
+          <Routes>
+            <Route 
+              path="/" 
+              element={
+                <ProtectedRoute>
+                  <HomePage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/login" 
+              element={
+                <PublicOnlyRoute>
+                  <Login />
+                </PublicOnlyRoute>
+              } 
+            />
+            <Route 
+              path="/users" 
+              element={
+                <AdminRoute>
+                  <Users />
+                </AdminRoute>
+              } 
+            />
+            {/* Fallback route */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Layout>
+      </BrowserRouter>
+    </QueryClientProvider>
   )
 }
 
