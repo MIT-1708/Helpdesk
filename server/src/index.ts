@@ -4,11 +4,13 @@ import dotenv from 'dotenv';
 import path from 'path';
 import prisma from './prisma.js';
 import { toNodeHandler, fromNodeHeaders } from 'better-auth/node';
-import { auth } from './auth.js';
+import { auth, adminAuthHelper } from './auth.js';
+import { z } from 'zod';
 import usersRouter from './routes/users.js';
 
 // Validate environment variables first
 import { validateEnv } from './utils/env-validator.js';
+import { hashPassword } from 'better-auth/crypto';
 validateEnv();
 
 const envFile = process.env.NODE_ENV === 'test' ? '.env.test' : '.env';
@@ -41,10 +43,14 @@ app.all('/api/auth/*', toNodeHandler(auth));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-
+// Helper wrapper to catch errors from async route handlers and forward them to global error middleware
+const asyncHandler = (fn: (req: express.Request, res: express.Response, next: express.NextFunction) => Promise<any>) =>
+  (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
 
 // Require Admin Middleware
-const requireAdmin = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+const requireAdmin = asyncHandler(async (req: express.Request, res: express.Response, next: express.NextFunction) => {
   const session = await auth.api.getSession({
     headers: fromNodeHeaders(req.headers),
   });
@@ -59,10 +65,10 @@ const requireAdmin = async (req: express.Request, res: express.Response, next: e
 
   (req as any).session = session;
   next();
-};
+});
 
 // Get Current User Session (excluding the session token)
-app.get('/api/me', async (req, res) => {
+app.get('/api/me', asyncHandler(async (req, res) => {
   const session = await auth.api.getSession({
     headers: fromNodeHeaders(req.headers),
   });
@@ -78,7 +84,7 @@ app.get('/api/me', async (req, res) => {
     user: session.user,
     session: sanitizedSession,
   });
-});
+}));
 
 // Admin Router
 const adminRouter = express.Router();

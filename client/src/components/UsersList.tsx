@@ -1,4 +1,4 @@
-import { Users as UsersIcon, CheckCircle2, XCircle, Shield, Calendar } from 'lucide-react';
+import { Users as UsersIcon, CheckCircle2, XCircle, Shield, Calendar, Edit2 } from 'lucide-react';
 import { Card, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
@@ -17,9 +17,10 @@ interface UsersListProps {
   users: User[];
   showClearFilters: boolean;
   onClearFilters: () => void;
+  onEdit: (user: User) => void;
 }
 
-export default function UsersList({ users, showClearFilters, onClearFilters }: UsersListProps) {
+export default function UsersList({ users, showClearFilters, onClearFilters, onEdit }: UsersListProps) {
   const getInitials = (name: string) => {
     return name
       .split(' ')
@@ -73,45 +74,57 @@ export default function UsersList({ users, showClearFilters, onClearFilters }: U
           >
             <div className="p-6 space-y-5">
               {/* User Profile Header */}
-              <div className="flex items-start gap-4 text-left">
-                {/* Avatar container */}
-                <div className="relative shrink-0">
-                  {user.image ? (
-                    <img
-                      src={user.image}
-                      alt={user.name}
-                      className="h-12 w-12 rounded-xl object-cover border border-border"
-                    />
-                  ) : (
-                    <div className={`h-12 w-12 rounded-xl border flex items-center justify-center text-sm font-extrabold shadow-sm ${
-                      isAdmin
-                        ? 'bg-gradient-to-tr from-primary/20 to-amber-500/20 border-primary/20 text-primary'
-                        : 'bg-gradient-to-tr from-blue-500/10 to-indigo-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400'
-                    }`}>
-                      {getInitials(user.name)}
-                    </div>
-                  )}
-                  {/* Verified/Unverified Badge indicator dot */}
-                  <span className={`absolute -bottom-1 -right-1 h-3.5 w-3.5 rounded-full border-2 border-card flex items-center justify-center shadow-sm ${
-                    user.emailVerified ? 'bg-emerald-500' : 'bg-amber-400'
-                  }`} title={user.emailVerified ? 'Verified Email' : 'Pending Verification'}>
-                    {user.emailVerified ? (
-                      <CheckCircle2 className="h-2 w-2 text-white" />
+              <div className="flex items-start justify-between gap-4 text-left">
+                <div className="flex items-start gap-4 min-w-0 flex-1">
+                  {/* Avatar container */}
+                  <div className="relative shrink-0">
+                    {user.image ? (
+                      <img
+                        src={user.image}
+                        alt={user.name}
+                        className="h-12 w-12 rounded-xl object-cover border border-border"
+                      />
                     ) : (
-                      <XCircle className="h-2 w-2 text-white" />
+                      <div className={`h-12 w-12 rounded-xl border flex items-center justify-center text-sm font-extrabold shadow-sm ${
+                        isAdmin
+                          ? 'bg-gradient-to-tr from-primary/20 to-amber-500/20 border-primary/20 text-primary'
+                          : 'bg-gradient-to-tr from-blue-500/10 to-indigo-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400'
+                      }`}>
+                        {getInitials(user.name)}
+                      </div>
                     )}
-                  </span>
-                </div>
+                    {/* Verified/Unverified Badge indicator dot */}
+                    <span className={`absolute -bottom-1 -right-1 h-3.5 w-3.5 rounded-full border-2 border-card flex items-center justify-center shadow-sm ${
+                      user.emailVerified ? 'bg-emerald-500' : 'bg-amber-400'
+                    }`} title={user.emailVerified ? 'Verified Email' : 'Pending Verification'}>
+                      {user.emailVerified ? (
+                        <CheckCircle2 className="h-2 w-2 text-white" />
+                      ) : (
+                        <XCircle className="h-2 w-2 text-white" />
+                      )}
+                    </span>
+                  </div>
 
-                {/* Info */}
-                <div className="space-y-0.5 text-left flex-1 min-w-0">
-                  <h3 className="font-bold text-foreground truncate group-hover:text-primary transition-colors">
-                    {user.name}
-                  </h3>
-                  <p className="text-xs text-muted-foreground truncate" title={user.email}>
-                    {user.email}
-                  </p>
+                  {/* Info */}
+                  <div className="space-y-0.5 text-left flex-1 min-w-0">
+                    <h3 className="font-bold text-foreground truncate group-hover:text-primary transition-colors">
+                      {user.name}
+                    </h3>
+                    <p className="text-xs text-muted-foreground truncate" title={user.email}>
+                      {user.email}
+                    </p>
+                  </div>
                 </div>
+                {/* Edit Button */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-lg shrink-0 hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
+                  onClick={() => onEdit(user)}
+                  title="Edit User"
+                >
+                  <Edit2 className="h-4 w-4" />
+                </Button>
               </div>
 
               {/* Role & Access Info */}

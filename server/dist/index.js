@@ -40,8 +40,12 @@ app.use((0, cors_1.default)({
 app.all('/api/auth/*', (0, node_1.toNodeHandler)(auth_js_1.auth));
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
+// Helper wrapper to catch errors from async route handlers and forward them to global error middleware
+const asyncHandler = (fn) => (req, res, next) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+};
 // Require Admin Middleware
-const requireAdmin = async (req, res, next) => {
+const requireAdmin = asyncHandler(async (req, res, next) => {
     const session = await auth_js_1.auth.api.getSession({
         headers: (0, node_1.fromNodeHeaders)(req.headers),
     });
@@ -53,9 +57,9 @@ const requireAdmin = async (req, res, next) => {
     }
     req.session = session;
     next();
-};
+});
 // Get Current User Session (excluding the session token)
-app.get('/api/me', async (req, res) => {
+app.get('/api/me', asyncHandler(async (req, res) => {
     const session = await auth_js_1.auth.api.getSession({
         headers: (0, node_1.fromNodeHeaders)(req.headers),
     });
@@ -68,7 +72,7 @@ app.get('/api/me', async (req, res) => {
         user: session.user,
         session: sanitizedSession,
     });
-});
+}));
 // Admin Router
 const adminRouter = express_1.default.Router();
 adminRouter.use(requireAdmin);

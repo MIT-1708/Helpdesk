@@ -293,4 +293,72 @@ describe('Users Component', () => {
       expect(screen.queryByRole('heading', { name: 'Create New User' })).not.toBeInTheDocument();
     });
   });
+
+  it('opens edit user modal, populates data, and submits updates successfully', async () => {
+    vi.mocked(axios.get).mockResolvedValue({ data: mockUsers });
+    vi.mocked(axios.put).mockResolvedValue({ data: { ...mockUsers[1], name: 'Updated Agent' } });
+
+    const user = userEvent.setup();
+    renderWithQueryClient(<Users />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Agent User')).toBeInTheDocument();
+    });
+
+    const editButtons = screen.getAllByTitle('Edit User');
+    await user.click(editButtons[1]);
+
+    expect(screen.getByRole('heading', { name: 'Edit User Details' })).toBeInTheDocument();
+
+    const nameInput = screen.getByPlaceholderText('John Doe');
+    const emailInput = screen.getByPlaceholderText('john@example.com');
+    const passwordInput = screen.getByPlaceholderText('••••••••');
+
+    expect(nameInput).toHaveValue('Agent User');
+    expect(emailInput).toHaveValue('agent@example.com');
+    expect(passwordInput).toHaveValue('');
+
+    await user.clear(nameInput);
+    await user.type(nameInput, 'Updated Agent');
+    const saveButton = screen.getByRole('button', { name: 'Save Changes' });
+    await user.click(saveButton);
+
+    await waitFor(() => {
+      expect(axios.put).toHaveBeenCalledWith(
+        expect.stringContaining('/api/admin/users/user-2'),
+        {
+          name: 'Updated Agent',
+          email: 'agent@example.com',
+          password: undefined,
+        },
+        expect.objectContaining({ withCredentials: true })
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByRole('heading', { name: 'Edit User Details' })).not.toBeInTheDocument();
+    });
+
+    vi.mocked(axios.put).mockClear();
+
+    await user.click(editButtons[1]);
+    expect(screen.getByRole('heading', { name: 'Edit User Details' })).toBeInTheDocument();
+
+    const reopenedPasswordInput = screen.getByPlaceholderText('••••••••');
+    const reopenedSaveButton = screen.getByRole('button', { name: 'Save Changes' });
+    await user.type(reopenedPasswordInput, 'newsecurepassword123');
+    await user.click(reopenedSaveButton);
+
+    await waitFor(() => {
+      expect(axios.put).toHaveBeenCalledWith(
+        expect.stringContaining('/api/admin/users/user-2'),
+        {
+          name: 'Agent User',
+          email: 'agent@example.com',
+          password: 'newsecurepassword123',
+        },
+        expect.objectContaining({ withCredentials: true })
+      );
+    });
+  });
 });

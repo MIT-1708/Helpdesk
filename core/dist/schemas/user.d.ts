@@ -5,3 +5,9 @@ export declare const createUserSchema: z.ZodObject<{
     password: z.ZodString;
 }, z.core.$strip>;
 export type CreateUserFormData = z.infer<typeof createUserSchema>;
+export declare const updateUserSchema: z.ZodObject<{
+    name: z.ZodString;
+    email: z.ZodString;
+    password: z.ZodOptional<z.ZodString>;
+}, z.core.$strip>;
+export type UpdateUserFormData = z.infer<typeof updateUserSchema>;

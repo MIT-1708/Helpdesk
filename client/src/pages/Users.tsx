@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import axios from 'axios';
 import { useQuery } from '@tanstack/react-query';
 import CreateUserModal from '@/components/CreateUserModal';
+import EditUserModal from '@/components/EditUserModal';
 import UsersList from '@/components/UsersList';
 
 interface User {
@@ -41,7 +42,7 @@ export default function Users() {
     queryFn: fetchUsersData,
   });
 
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [dialog, setDialog] = useState<{ mode: 'create' } | { mode: 'edit'; user: User } | null>(null);
 
   const filteredUsers = users.filter((user) => {
     const matchesSearch = 
@@ -90,7 +91,7 @@ export default function Users() {
             <Button
               variant="default"
               size="sm"
-              onClick={() => setIsCreateModalOpen(true)}
+              onClick={() => setDialog({ mode: 'create' })}
               className="gap-2 cursor-pointer bg-primary text-primary-foreground hover:bg-primary/95 shadow-md shadow-primary/10 hover:shadow-primary/20"
             >
               <UserPlus className="h-3.5 w-3.5" />
@@ -190,14 +191,23 @@ export default function Users() {
               setSearchQuery('');
               setRoleFilter('all');
             }}
+            onEdit={(user) => setDialog({ mode: 'edit', user })}
           />
         )}
       </div>
 
       {/* Create User Modal */}
       <CreateUserModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
+        isOpen={dialog?.mode === 'create'}
+        onClose={() => setDialog(null)}
+        onSuccess={fetchUsers}
+      />
+
+      {/* Edit User Modal */}
+      <EditUserModal
+        isOpen={dialog?.mode === 'edit'}
+        user={dialog?.mode === 'edit' ? dialog.user : null}
+        onClose={() => setDialog(null)}
         onSuccess={fetchUsers}
       />
     </div>
