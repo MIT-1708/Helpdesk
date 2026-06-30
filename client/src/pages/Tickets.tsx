@@ -32,13 +32,27 @@ interface Ticket {
   } | null;
 }
 
+interface PaginationMetadata {
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+interface FetchTicketsResponse {
+  tickets: Ticket[];
+  pagination: PaginationMetadata;
+}
+
 const fetchTickets = async (filters: {
   status: string;
   category: string;
   search: string;
   sortBy: string;
   sortOrder: 'asc' | 'desc';
-}) => {
+  page: number;
+  pageSize: number;
+}): Promise<FetchTicketsResponse> => {
   const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
   const params: any = {};
   if (filters.status && filters.status !== 'all') {
@@ -52,6 +66,8 @@ const fetchTickets = async (filters: {
   }
   params.sortBy = filters.sortBy;
   params.sortOrder = filters.sortOrder;
+  params.page = filters.page;
+  params.pageSize = filters.pageSize;
 
   const response = await axios.get(`${baseUrl}/api/tickets`, {
     params,
@@ -66,6 +82,7 @@ export default function Tickets() {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [sorting, setSorting] = useState<SortingState>([{ id: 'createdAt', desc: true }]);
+  const [{ pageIndex, pageSize }, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -74,12 +91,17 @@ export default function Tickets() {
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
+  // Reset pagination to first page when search filters change
+  useEffect(() => {
+    setPagination(prev => ({ ...prev, pageIndex: 0 }));
+  }, [statusFilter, categoryFilter, debouncedSearch]);
+
   const activeSort = sorting[0] || { id: 'createdAt', desc: true };
   const sortBy = activeSort.id;
   const sortOrder = activeSort.desc ? 'desc' : 'asc';
 
-  const { data: tickets = [], isLoading, isFetching, error, refetch } = useQuery<Ticket[]>({
-    queryKey: ['tickets', statusFilter, categoryFilter, debouncedSearch, sortBy, sortOrder],
+  const { data, isLoading, isFetching, error, refetch } = useQuery<FetchTicketsResponse>({
+    queryKey: ['tickets', statusFilter, categoryFilter, debouncedSearch, sortBy, sortOrder, pageIndex, pageSize],
     queryFn: () =>
       fetchTickets({
         status: statusFilter,
@@ -87,9 +109,15 @@ export default function Tickets() {
         search: debouncedSearch,
         sortBy,
         sortOrder,
+        page: pageIndex + 1,
+        pageSize,
       }),
     placeholderData: keepPreviousData,
   });
+
+  const tickets = data?.tickets || [];
+  const totalCount = data?.pagination?.totalCount || 0;
+  const pageCount = data?.pagination?.totalPages || 0;
 
   const columns = [
     {
@@ -270,9 +298,16 @@ export default function Tickets() {
     columns,
     state: {
       sorting,
+      pagination: {
+        pageIndex,
+        pageSize,
+      },
     },
     onSortingChange: setSorting,
+    onPaginationChange: setPagination,
     manualSorting: true,
+    manualPagination: true,
+    pageCount: pageCount,
     getCoreRowModel: getCoreRowModel(),
   });
 
@@ -385,42 +420,96 @@ export default function Tickets() {
             </div>
           </div>
         ) : (
-          /* Tickets Table */
-          <div className="border border-border/80 rounded-2xl overflow-hidden bg-card/30 backdrop-blur-sm shadow-sm">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  {table.getHeaderGroups().map((headerGroup) => (
-                    <tr key={headerGroup.id} className="border-b border-border bg-muted/40">
-                      {headerGroup.headers.map((header) => (
-                        <th
-                          key={header.id}
-                          className="px-6 py-4 text-xs font-semibold tracking-wider text-muted-foreground uppercase"
-                        >
-                          {header.isPlaceholder
-                            ? null
-                            : flexRender(header.column.columnDef.header, header.getContext())}
-                        </th>
-                      ))}
-                    </tr>
-                  ))}
-                </thead>
-                <tbody>
-                  {table.getRowModel().rows.map((row) => (
-                    <tr
-                      key={row.id}
-                      data-testid="ticket-card"
-                      className="border-b border-border/50 hover:bg-muted/30 transition-all duration-200"
-                    >
-                      {row.getVisibleCells().map((cell) => (
-                        <td key={cell.id} className="px-6 py-4.5 text-sm">
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          /* Tickets Table with Pagination controls */
+          <div className="space-y-4">
+            <div className="border border-border/80 rounded-2xl overflow-hidden bg-card/30 backdrop-blur-sm shadow-sm">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    {table.getHeaderGroups().map((headerGroup) => (
+                      <tr key={headerGroup.id} className="border-b border-border bg-muted/40">
+                        {headerGroup.headers.map((header) => (
+                          <th
+                            key={header.id}
+                            className="px-6 py-4 text-xs font-semibold tracking-wider text-muted-foreground uppercase"
+                          >
+                            {header.isPlaceholder
+                              ? null
+                              : flexRender(header.column.columnDef.header, header.getContext())}
+                          </th>
+                        ))}
+                      </tr>
+                    ))}
+                  </thead>
+                  <tbody>
+                    {table.getRowModel().rows.map((row) => (
+                      <tr
+                        key={row.id}
+                        data-testid="ticket-card"
+                        className="border-b border-border/50 hover:bg-muted/30 transition-all duration-200"
+                      >
+                        {row.getVisibleCells().map((cell) => (
+                          <td key={cell.id} className="px-6 py-4.5 text-sm">
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Pagination Controls */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-card/20 backdrop-blur-sm border border-border/80 p-4 rounded-2xl shadow-sm">
+              <div className="text-xs text-muted-foreground">
+                Showing <span className="font-semibold text-foreground">{tickets.length}</span> of{' '}
+                <span className="font-semibold text-foreground">{totalCount}</span> tickets
+              </div>
+              
+              <div className="flex items-center gap-6">
+                {/* Page size selector */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Rows per page:</span>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => table.setPageSize(Number(e.target.value))}
+                    className="bg-background/50 border border-border rounded-lg px-2.5 py-1 text-xs text-foreground focus:outline-none focus:border-primary transition-all cursor-pointer"
+                  >
+                    {[10, 20, 50, 100].map((size) => (
+                      <option key={size} value={size}>
+                        {size}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Navigation buttons */}
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => table.previousPage()}
+                    disabled={!table.getCanPreviousPage()}
+                    className="h-8 px-3 rounded-lg border-border hover:bg-muted text-foreground transition-all duration-200 cursor-pointer disabled:opacity-50"
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-xs text-muted-foreground px-1">
+                    Page <span className="font-semibold text-foreground">{pageIndex + 1}</span> of{' '}
+                    <span className="font-semibold text-foreground">{pageCount || 1}</span>
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => table.nextPage()}
+                    disabled={!table.getCanNextPage()}
+                    className="h-8 px-3 rounded-lg border-border hover:bg-muted text-foreground transition-all duration-200 cursor-pointer disabled:opacity-50"
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         )}

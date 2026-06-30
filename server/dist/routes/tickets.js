@@ -32,6 +32,8 @@ const getTicketsQuerySchema = zod_1.z.object({
     search: zod_1.z.string().optional(),
     sortBy: zod_1.z.enum(['id', 'subject', 'status', 'category', 'createdAt', 'senderEmail']).default('createdAt'),
     sortOrder: zod_1.z.enum(['asc', 'desc']).default('desc'),
+    page: zod_1.z.coerce.number().int().min(1).default(1),
+    pageSize: zod_1.z.coerce.number().int().min(1).max(100).default(10),
 });
 router.get('/', requireSession, async (req, res, next) => {
     try {
@@ -39,7 +41,7 @@ router.get('/', requireSession, async (req, res, next) => {
         if (!parsed.success) {
             return res.status(400).json({ error: parsed.error.issues[0]?.message || 'Invalid query parameters.' });
         }
-        const { status, category, search, sortBy, sortOrder } = parsed.data;
+        const { status, category, search, sortBy, sortOrder, page, pageSize } = parsed.data;
         // Build filters
         const where = {};
         if (status) {
@@ -61,12 +63,15 @@ router.get('/', requireSession, async (req, res, next) => {
                 { senderName: { contains: search, mode: 'insensitive' } },
             ];
         }
-        // Retrieve tickets sorted
+        const totalCount = await prisma_js_1.default.ticket.count({ where });
+        // Retrieve tickets sorted and paginated
         const tickets = await prisma_js_1.default.ticket.findMany({
             where,
             orderBy: {
                 [sortBy]: sortOrder,
             },
+            skip: (page - 1) * pageSize,
+            take: pageSize,
             include: {
                 assignedTo: {
                     select: {
@@ -78,7 +83,15 @@ router.get('/', requireSession, async (req, res, next) => {
                 },
             },
         });
-        return res.json(tickets);
+        return res.json({
+            tickets,
+            pagination: {
+                totalCount,
+                page,
+                pageSize,
+                totalPages: Math.ceil(totalCount / pageSize),
+            },
+        });
     }
     catch (error) {
         next(error);

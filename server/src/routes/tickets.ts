@@ -31,6 +31,8 @@ const getTicketsQuerySchema = z.object({
   search: z.string().optional(),
   sortBy: z.enum(['id', 'subject', 'status', 'category', 'createdAt', 'senderEmail']).default('createdAt'),
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(10),
 });
 
 router.get('/', requireSession, async (req, res, next) => {
@@ -40,7 +42,7 @@ router.get('/', requireSession, async (req, res, next) => {
       return res.status(400).json({ error: parsed.error.issues[0]?.message || 'Invalid query parameters.' });
     }
 
-    const { status, category, search, sortBy, sortOrder } = parsed.data;
+    const { status, category, search, sortBy, sortOrder, page, pageSize } = parsed.data;
 
     // Build filters
     const where: any = {};
@@ -68,12 +70,16 @@ router.get('/', requireSession, async (req, res, next) => {
       ];
     }
 
-    // Retrieve tickets sorted
+    const totalCount = await prisma.ticket.count({ where });
+
+    // Retrieve tickets sorted and paginated
     const tickets = await prisma.ticket.findMany({
       where,
       orderBy: {
         [sortBy]: sortOrder,
       },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
       include: {
         assignedTo: {
           select: {
@@ -86,7 +92,15 @@ router.get('/', requireSession, async (req, res, next) => {
       },
     });
 
-    return res.json(tickets);
+    return res.json({
+      tickets,
+      pagination: {
+        totalCount,
+        page,
+        pageSize,
+        totalPages: Math.ceil(totalCount / pageSize),
+      },
+    });
   } catch (error) {
     next(error);
   }

@@ -44,6 +44,16 @@ const mockTickets = [
   },
 ];
 
+const mockPaginationResponse = {
+  tickets: mockTickets,
+  pagination: {
+    totalCount: 20,
+    page: 1,
+    pageSize: 10,
+    totalPages: 2,
+  },
+};
+
 describe('Tickets Component', () => {
   beforeEach(() => {
     vi.resetAllMocks();
@@ -57,7 +67,7 @@ describe('Tickets Component', () => {
   });
 
   it('renders tickets successfully', async () => {
-    vi.mocked(axios.get).mockResolvedValue({ data: mockTickets });
+    vi.mocked(axios.get).mockResolvedValue({ data: mockPaginationResponse });
     renderWithQueryClient(<Tickets />);
 
     await waitFor(() => {
@@ -72,16 +82,19 @@ describe('Tickets Component', () => {
     // Check status pill rendering
     expect(screen.getByText(TicketStatus.OPEN)).toBeInTheDocument();
     expect(screen.getByText(TicketStatus.RESOLVED)).toBeInTheDocument();
+
+    // Check pagination metadata display
+    expect(screen.getByText(/Showing/)).toHaveTextContent('Showing 2 of 20 tickets');
   });
 
   it('requests tickets with status filter when dropdown changes', async () => {
-    vi.mocked(axios.get).mockResolvedValue({ data: [] });
+    vi.mocked(axios.get).mockResolvedValue({
+      data: { tickets: [], pagination: { totalCount: 0, page: 1, pageSize: 10, totalPages: 0 } },
+    });
     renderWithQueryClient(<Tickets />);
 
     // Locate status dropdown
     const selects = screen.getAllByRole('combobox');
-    
-    // index 0: status select, index 1: category select
     const statusDropdown = selects[0];
     fireEvent.change(statusDropdown, { target: { value: TicketStatus.OPEN } });
 
@@ -91,6 +104,7 @@ describe('Tickets Component', () => {
         expect.objectContaining({
           params: expect.objectContaining({
             status: TicketStatus.OPEN,
+            page: 1,
           }),
         })
       );
@@ -98,7 +112,9 @@ describe('Tickets Component', () => {
   });
 
   it('requests tickets with category filter when dropdown changes', async () => {
-    vi.mocked(axios.get).mockResolvedValue({ data: [] });
+    vi.mocked(axios.get).mockResolvedValue({
+      data: { tickets: [], pagination: { totalCount: 0, page: 1, pageSize: 10, totalPages: 0 } },
+    });
     renderWithQueryClient(<Tickets />);
 
     const selects = screen.getAllByRole('combobox');
@@ -111,6 +127,7 @@ describe('Tickets Component', () => {
         expect.objectContaining({
           params: expect.objectContaining({
             category: TicketCategory.REFUND,
+            page: 1,
           }),
         })
       );
@@ -118,19 +135,21 @@ describe('Tickets Component', () => {
   });
 
   it('requests tickets with search query when typing in search input', async () => {
-    vi.mocked(axios.get).mockResolvedValue({ data: [] });
+    vi.mocked(axios.get).mockResolvedValue({
+      data: { tickets: [], pagination: { totalCount: 0, page: 1, pageSize: 10, totalPages: 0 } },
+    });
     renderWithQueryClient(<Tickets />);
 
     const searchInput = screen.getByPlaceholderText('Search by subject, body, or sender...');
     fireEvent.change(searchInput, { target: { value: 'Refund' } });
 
-    // Wait for the 300ms debounce trigger
     await waitFor(() => {
       expect(axios.get).toHaveBeenLastCalledWith(
         expect.any(String),
         expect.objectContaining({
           params: expect.objectContaining({
             search: 'Refund',
+            page: 1,
           }),
         })
       );
@@ -138,16 +157,12 @@ describe('Tickets Component', () => {
   });
 
   it('requests tickets with updated sorting when clicking a table header', async () => {
-    vi.mocked(axios.get).mockResolvedValue({ data: mockTickets });
+    vi.mocked(axios.get).mockResolvedValue({ data: mockPaginationResponse });
     renderWithQueryClient(<Tickets />);
 
-    // Wait for table to load
     await screen.findByText('Refund request');
 
-    // Find the header button for ID
     const idHeaderButton = screen.getByRole('button', { name: /ID/ });
-    
-    // Clicking the ID header button should change sorting state to asc
     fireEvent.click(idHeaderButton);
 
     await waitFor(() => {
@@ -162,10 +177,7 @@ describe('Tickets Component', () => {
       );
     });
 
-    // Find the header button for Subject
     const subjectHeaderButton = screen.getByRole('button', { name: /Subject/ });
-    
-    // Clicking Subject header button should change sorting to subject
     fireEvent.click(subjectHeaderButton);
 
     await waitFor(() => {
@@ -182,23 +194,19 @@ describe('Tickets Component', () => {
   });
 
   it('requests tickets with combined status, category, search, and sorting parameters', async () => {
-    vi.mocked(axios.get).mockResolvedValue({ data: mockTickets });
+    vi.mocked(axios.get).mockResolvedValue({ data: mockPaginationResponse });
     renderWithQueryClient(<Tickets />);
 
-    // 1. Change status filter to OPEN
     const selects = screen.getAllByRole('combobox');
     const statusDropdown = selects[0];
     fireEvent.change(statusDropdown, { target: { value: TicketStatus.OPEN } });
 
-    // 2. Change category filter to REFUND
     const categoryDropdown = selects[1];
     fireEvent.change(categoryDropdown, { target: { value: TicketCategory.REFUND } });
 
-    // 3. Type search query
     const searchInput = screen.getByPlaceholderText('Search by subject, body, or sender...');
     fireEvent.change(searchInput, { target: { value: 'database' } });
 
-    // 4. Click ID header to sort
     const idHeaderButton = await screen.findByRole('button', { name: /ID/ });
     fireEvent.click(idHeaderButton);
 
@@ -212,9 +220,58 @@ describe('Tickets Component', () => {
             search: 'database',
             sortBy: 'id',
             sortOrder: 'asc',
+            page: 1,
           }),
         })
       );
     }, { timeout: 1500 });
+  });
+
+  it('requests next page when clicking next pagination button', async () => {
+    vi.mocked(axios.get).mockResolvedValue({ data: mockPaginationResponse });
+    renderWithQueryClient(<Tickets />);
+
+    // Wait for the table load
+    await screen.findByText('Refund request');
+
+    // Click 'Next' button
+    const nextButton = screen.getByRole('button', { name: /Next/i });
+    fireEvent.click(nextButton);
+
+    await waitFor(() => {
+      expect(axios.get).toHaveBeenLastCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          params: expect.objectContaining({
+            page: 2,
+          }),
+        })
+      );
+    });
+  });
+
+  it('requests updated page size when rows per page dropdown changes', async () => {
+    vi.mocked(axios.get).mockResolvedValue({ data: mockPaginationResponse });
+    renderWithQueryClient(<Tickets />);
+
+    await screen.findByText('Refund request');
+
+    // Locate rows per page dropdown (which is a combobox, index 2)
+    const selects = screen.getAllByRole('combobox');
+    const rowsPerPageDropdown = selects[2];
+    
+    fireEvent.change(rowsPerPageDropdown, { target: { value: '20' } });
+
+    await waitFor(() => {
+      expect(axios.get).toHaveBeenLastCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          params: expect.objectContaining({
+            pageSize: 20,
+            page: 1,
+          }),
+        })
+      );
+    });
   });
 });
