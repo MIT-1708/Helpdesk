@@ -10,6 +10,7 @@ const path_1 = __importDefault(require("path"));
 const prisma_js_1 = __importDefault(require("./prisma.js"));
 const node_1 = require("better-auth/node");
 const auth_js_1 = require("./auth.js");
+const users_js_1 = __importDefault(require("./routes/users.js"));
 // Validate environment variables first
 const env_validator_js_1 = require("./utils/env-validator.js");
 (0, env_validator_js_1.validateEnv)();
@@ -39,12 +40,8 @@ app.use((0, cors_1.default)({
 app.all('/api/auth/*', (0, node_1.toNodeHandler)(auth_js_1.auth));
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
-// Helper wrapper to catch errors from async route handlers and forward them to global error middleware
-const asyncHandler = (fn) => (req, res, next) => {
-    Promise.resolve(fn(req, res, next)).catch(next);
-};
 // Require Admin Middleware
-const requireAdmin = asyncHandler(async (req, res, next) => {
+const requireAdmin = async (req, res, next) => {
     const session = await auth_js_1.auth.api.getSession({
         headers: (0, node_1.fromNodeHeaders)(req.headers),
     });
@@ -56,9 +53,9 @@ const requireAdmin = asyncHandler(async (req, res, next) => {
     }
     req.session = session;
     next();
-});
+};
 // Get Current User Session (excluding the session token)
-app.get('/api/me', asyncHandler(async (req, res) => {
+app.get('/api/me', async (req, res) => {
     const session = await auth_js_1.auth.api.getSession({
         headers: (0, node_1.fromNodeHeaders)(req.headers),
     });
@@ -71,29 +68,11 @@ app.get('/api/me', asyncHandler(async (req, res) => {
         user: session.user,
         session: sanitizedSession,
     });
-}));
+});
 // Admin Router
 const adminRouter = express_1.default.Router();
 adminRouter.use(requireAdmin);
-// Fetch all users (Admin only)
-adminRouter.get('/users', asyncHandler(async (req, res) => {
-    const users = await prisma_js_1.default.user.findMany({
-        select: {
-            id: true,
-            email: true,
-            name: true,
-            emailVerified: true,
-            image: true,
-            role: true,
-            createdAt: true,
-            updatedAt: true,
-        },
-        orderBy: {
-            createdAt: 'desc',
-        },
-    });
-    res.json(users);
-}));
+adminRouter.use('/users', users_js_1.default);
 app.use('/api/admin', adminRouter);
 // Health Check Endpoint (checks DB connectivity)
 // Note: We use local try/catch here because we want to return a custom unhealthy JSON payload.

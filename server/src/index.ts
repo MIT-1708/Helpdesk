@@ -5,6 +5,7 @@ import path from 'path';
 import prisma from './prisma.js';
 import { toNodeHandler, fromNodeHeaders } from 'better-auth/node';
 import { auth } from './auth.js';
+import usersRouter from './routes/users.js';
 
 // Validate environment variables first
 import { validateEnv } from './utils/env-validator.js';
@@ -40,14 +41,10 @@ app.all('/api/auth/*', toNodeHandler(auth));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Helper wrapper to catch errors from async route handlers and forward them to global error middleware
-const asyncHandler = (fn: (req: express.Request, res: express.Response, next: express.NextFunction) => Promise<any>) =>
-  (req: express.Request, res: express.Response, next: express.NextFunction) => {
-    Promise.resolve(fn(req, res, next)).catch(next);
-  };
+
 
 // Require Admin Middleware
-const requireAdmin = asyncHandler(async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+const requireAdmin = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
   const session = await auth.api.getSession({
     headers: fromNodeHeaders(req.headers),
   });
@@ -62,10 +59,10 @@ const requireAdmin = asyncHandler(async (req: express.Request, res: express.Resp
 
   (req as any).session = session;
   next();
-});
+};
 
 // Get Current User Session (excluding the session token)
-app.get('/api/me', asyncHandler(async (req, res) => {
+app.get('/api/me', async (req, res) => {
   const session = await auth.api.getSession({
     headers: fromNodeHeaders(req.headers),
   });
@@ -81,31 +78,13 @@ app.get('/api/me', asyncHandler(async (req, res) => {
     user: session.user,
     session: sanitizedSession,
   });
-}));
+});
 
 // Admin Router
 const adminRouter = express.Router();
 adminRouter.use(requireAdmin);
 
-// Fetch all users (Admin only)
-adminRouter.get('/users', asyncHandler(async (req, res) => {
-  const users = await prisma.user.findMany({
-    select: {
-      id: true,
-      email: true,
-      name: true,
-      emailVerified: true,
-      image: true,
-      role: true,
-      createdAt: true,
-      updatedAt: true,
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
-  });
-  res.json(users);
-}));
+adminRouter.use('/users', usersRouter);
 
 app.use('/api/admin', adminRouter);
 

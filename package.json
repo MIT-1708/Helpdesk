@@ -4,11 +4,13 @@
   "private": true,
   "workspaces": [
     "client",
-    "server"
+    "server",
+    "core"
   ],
   "scripts": {
     "dev:server": "bun --cwd server dev",
     "dev:client": "bun --cwd client dev",
+    "build:core": "bun run --cwd core build",
     "install:all": "bun install",
     "test:setup": "bun scripts/test-setup.ts",
     "test:e2e": "bun run test:setup && bunx playwright test",

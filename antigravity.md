@@ -47,6 +47,14 @@ This file serves as a memory/rules reference for the Antigravity agent when work
   - Wrap components inside `<QueryClientProvider client={queryClient}>` at the application root ([App.tsx](file:///c:/Users/allle/OneDrive/Desktop/Helpdesk/client/src/App.tsx)).
   - Use `useQuery` for fetching. For loading states, use `isLoading` for the initial skeleton load, and use `isFetching` for handling background refetches / Refresh button loaders.
   - Handle errors via the `error.message` property on the returned query error object.
+- **Data Validation**: Always use **Zod** (`zod`) to define request schemas and validate incoming HTTP request payloads on the backend, ensuring unified input validation rules and error responses.
+- **Client-Side Form Validation**: Use **React Hook Form** (`react-hook-form`) combined with **Zod** (`zod`) and `@hookform/resolvers/zod` to handle input registration, state tracking, and schema-based validation for forms, ensuring unified validation rules across frontend and backend.
+- **Shared Schemas (Monorepo)**: For data validation schemas shared between the client and server (such as `createUserSchema`), define them inside the `@helpdesk/core` workspace package (`core/src/schemas/`). Build the core package using `bun run build:core` from the root workspace, and import the schemas in the client and server projects from `@helpdesk/core` to maintain consistency and prevent duplication.
+- **Express Promise Error Handling**: Express v5 automatically catches rejected promises thrown by asynchronous route handlers and middleware functions and forwards them directly to the global error-handling middleware. Therefore, custom `try/catch` blocks or `asyncHandler` wrappers are unnecessary.
+
+
+
+
 
 ### 6. Writing and Executing Component Tests
 - **Framework & Libraries**: We use **Vitest** (`vitest`) as the test runner and **React Testing Library** (`@testing-library/react`) for component-level DOM testing.

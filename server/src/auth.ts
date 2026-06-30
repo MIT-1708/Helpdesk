@@ -53,4 +53,24 @@ export const auth = betterAuth({
   },
 });
 
+export const adminAuthHelper = betterAuth({
+  database: prismaAdapter(prisma, {
+    provider: "postgresql",
+  }),
+  emailAndPassword: {
+    enabled: true,
+    disableSignUp: false, // Always allow programmatic signup via admin API helper
+  },
+  user: {
+    additionalFields: {
+      role: {
+        type: "string",
+        required: false,
+        defaultValue: "agent",
+      },
+    },
+  },
+});
+
+
 
