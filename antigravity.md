@@ -69,5 +69,18 @@ This file serves as a memory/rules reference for the Antigravity agent when work
   - To run tests once: Run `bun run test:run` inside the `client/` directory.
   - To run tests in interactive watch mode: Run `bun run test` inside the `client/` directory.
 
+### 7. Support Email Inbound Webhook & Ticket Schema
+- **Webhook Endpoint**: `POST /api/webhooks/inbound-email` (implemented in [inbound.ts](file:///c:/Users/allle/OneDrive/Desktop/Helpdesk/server/src/routes/inbound.ts)).
+  - Body payload: `{ from: string, name?: string, subject: string, body: string, bodyHtml?: string }` (validated via Zod schema).
+- **Database Schema**:
+  - `Ticket` model has direct fields for `body`, `bodyHtml`, `senderEmail`, and `senderName` matching user database requirements.
+  - Uses PostgreSQL enums `TicketStatus` (`open`, `resolved`, `closed`) and `TicketCategory` (`GENERAL` -> "General Question", `TECHNICAL` -> "Technical Question", `REFUND` -> "Refund Request") mapped via `@map` in [schema.prisma](file:///c:/Users/allle/OneDrive/Desktop/Helpdesk/server/prisma/schema.prisma).
+  - Enums are defined and exported from `@helpdesk/core` monorepo package.
+- **E2E Webhook Tests**:
+  - Located in [inbound.spec.ts](file:///c:/Users/allle/OneDrive/Desktop/Helpdesk/e2e/inbound.spec.ts).
+  - Run webhook tests: `bun run test:setup; bunx playwright test e2e/inbound.spec.ts`
+  - Database resets cleanly with `--accept-data-loss` and `--force-reset` parameters configured in [test-setup.ts](file:///c:/Users/allle/OneDrive/Desktop/Helpdesk/scripts/test-setup.ts).
+
 ---
 *Last Updated: 2026-06-30 per user request to maintain project memory for Antigravity.*
+
