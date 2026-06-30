@@ -106,4 +106,40 @@ router.get('/', requireSession, async (req, res, next) => {
   }
 });
 
+router.get('/:id', requireSession, async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: 'Invalid ticket ID format.' });
+    }
+
+    const ticket = await prisma.ticket.findUnique({
+      where: { id },
+      include: {
+        assignedTo: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+          },
+        },
+        messages: {
+          orderBy: {
+            createdAt: 'asc',
+          },
+        },
+      },
+    });
+
+    if (!ticket) {
+      return res.status(404).json({ error: 'Ticket not found.' });
+    }
+
+    return res.json(ticket);
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;

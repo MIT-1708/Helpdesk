@@ -3,6 +3,7 @@ import { screen, waitFor, fireEvent } from '@testing-library/react';
 import axios from 'axios';
 import Tickets from '../Tickets';
 import { renderWithQueryClient } from '@/test/test-utils';
+import { MemoryRouter } from 'react-router-dom';
 import { TicketStatus, TicketCategory } from '@helpdesk/core';
 
 // Mock axios
@@ -54,6 +55,14 @@ const mockPaginationResponse = {
   },
 };
 
+const renderComponent = () => {
+  return renderWithQueryClient(
+    <MemoryRouter>
+      <Tickets />
+    </MemoryRouter>
+  );
+};
+
 describe('Tickets Component', () => {
   beforeEach(() => {
     vi.resetAllMocks();
@@ -61,14 +70,14 @@ describe('Tickets Component', () => {
 
   it('renders loading skeleton initially', async () => {
     vi.mocked(axios.get).mockReturnValue(new Promise(() => {}));
-    const { container } = renderWithQueryClient(<Tickets />);
+    const { container } = renderComponent();
     const skeletons = container.querySelectorAll('.animate-pulse');
     expect(skeletons.length).toBeGreaterThan(0);
   });
 
   it('renders tickets successfully', async () => {
     vi.mocked(axios.get).mockResolvedValue({ data: mockPaginationResponse });
-    renderWithQueryClient(<Tickets />);
+    renderComponent();
 
     await waitFor(() => {
       expect(screen.getByText('Refund request')).toBeInTheDocument();
@@ -91,7 +100,7 @@ describe('Tickets Component', () => {
     vi.mocked(axios.get).mockResolvedValue({
       data: { tickets: [], pagination: { totalCount: 0, page: 1, pageSize: 10, totalPages: 0 } },
     });
-    renderWithQueryClient(<Tickets />);
+    renderComponent();
 
     // Locate status dropdown
     const selects = screen.getAllByRole('combobox');
@@ -115,7 +124,7 @@ describe('Tickets Component', () => {
     vi.mocked(axios.get).mockResolvedValue({
       data: { tickets: [], pagination: { totalCount: 0, page: 1, pageSize: 10, totalPages: 0 } },
     });
-    renderWithQueryClient(<Tickets />);
+    renderComponent();
 
     const selects = screen.getAllByRole('combobox');
     const categoryDropdown = selects[1];
@@ -138,7 +147,7 @@ describe('Tickets Component', () => {
     vi.mocked(axios.get).mockResolvedValue({
       data: { tickets: [], pagination: { totalCount: 0, page: 1, pageSize: 10, totalPages: 0 } },
     });
-    renderWithQueryClient(<Tickets />);
+    renderComponent();
 
     const searchInput = screen.getByPlaceholderText('Search by subject, body, or sender...');
     fireEvent.change(searchInput, { target: { value: 'Refund' } });
@@ -158,7 +167,7 @@ describe('Tickets Component', () => {
 
   it('requests tickets with updated sorting when clicking a table header', async () => {
     vi.mocked(axios.get).mockResolvedValue({ data: mockPaginationResponse });
-    renderWithQueryClient(<Tickets />);
+    renderComponent();
 
     await screen.findByText('Refund request');
 
@@ -195,7 +204,7 @@ describe('Tickets Component', () => {
 
   it('requests tickets with combined status, category, search, and sorting parameters', async () => {
     vi.mocked(axios.get).mockResolvedValue({ data: mockPaginationResponse });
-    renderWithQueryClient(<Tickets />);
+    renderComponent();
 
     const selects = screen.getAllByRole('combobox');
     const statusDropdown = selects[0];
@@ -229,7 +238,7 @@ describe('Tickets Component', () => {
 
   it('requests next page when clicking next pagination button', async () => {
     vi.mocked(axios.get).mockResolvedValue({ data: mockPaginationResponse });
-    renderWithQueryClient(<Tickets />);
+    renderComponent();
 
     // Wait for the table load
     await screen.findByText('Refund request');
@@ -252,7 +261,7 @@ describe('Tickets Component', () => {
 
   it('requests updated page size when rows per page dropdown changes', async () => {
     vi.mocked(axios.get).mockResolvedValue({ data: mockPaginationResponse });
-    renderWithQueryClient(<Tickets />);
+    renderComponent();
 
     await screen.findByText('Refund request');
 

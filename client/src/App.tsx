@@ -4,6 +4,7 @@ import { useSession, signOut } from './lib/auth-client'
 import Login from './pages/Login'
 import Users from './pages/Users'
 import Tickets from './pages/Tickets'
+import TicketDetails from './pages/TicketDetails'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { UserRole } from '@helpdesk/core'
 
@@ -31,7 +32,7 @@ function Layout({ children }: { children: React.ReactNode }) {
             </p>
           </div>
         </Link>
-        
+
         <div className="flex items-center gap-5">
           {!isPending && user && (
             <Link
@@ -241,37 +242,37 @@ function App() {
       <BrowserRouter>
         <Layout>
           <Routes>
-            <Route 
-              path="/" 
+            <Route
+              path="/"
               element={
                 <ProtectedRoute>
                   <HomePage />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/login" 
+            <Route
+              path="/login"
               element={
                 <PublicOnlyRoute>
                   <Login />
                 </PublicOnlyRoute>
-              } 
+              }
             />
-            <Route 
-              path="/users" 
+            <Route
+              path="/users"
               element={
                 <AdminRoute>
                   <Users />
                 </AdminRoute>
-              } 
+              }
             />
-            <Route 
-              path="/tickets" 
+            <Route
+              path="/tickets"
               element={
                 <ProtectedRoute>
                   <Tickets />
                 </ProtectedRoute>
-              } 
+              }
             />
             {/* Fallback route */}
             <Route path="*" element={<Navigate to="/" replace />} />

@@ -97,6 +97,17 @@ This file serves as a memory/rules reference for the Antigravity agent when work
   - Located in [Tickets.test.tsx](file:///c:/Users/allle/OneDrive/Desktop/Helpdesk/client/src/pages/__tests__/Tickets.test.tsx).
   - Verifies ticket list rendering, status filters, category filters, debounced text search parameters, column sorting header clicks, and page/pageSize navigation parameters passed to axios.
 
+### 9. Ticket Details Page & Single Ticket API
+- **Backend API Route**: `GET /api/tickets/:id` (implemented in [tickets.ts](file:///c:/Users/allle/OneDrive/Desktop/Helpdesk/server/src/routes/tickets.ts)).
+  - Requires active session.
+  - Retrieves a single ticket by its database ID, including assigned agent information and chronologically ordered messages.
+- **Frontend Page**: [TicketDetails.tsx](file:///c:/Users/allle/OneDrive/Desktop/Helpdesk/client/src/pages/TicketDetails.tsx) mounted at `/tickets/:id`.
+  - Accessible by clicking on a ticket's subject link on the main ticket table.
+  - Displays ticket metadata, description, chronological message flow, customer info, and assignee cards.
+- **Component Tests**:
+  - Located in [TicketDetails.test.tsx](file:///c:/Users/allle/OneDrive/Desktop/Helpdesk/client/src/pages/__tests__/TicketDetails.test.tsx).
+  - Verifies ticket details layout, message thread lists, customer card, assignee cards, and API failures.
+
 ---
 *Last Updated: 2026-06-30 per user request to maintain project memory for Antigravity.*
 

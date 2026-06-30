@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Ticket as TicketIcon, Search, RefreshCw, AlertCircle, Calendar, Tag, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -162,9 +163,13 @@ export default function Tickets() {
       ),
       cell: ({ row }: any) => (
         <div className="flex flex-col max-w-[280px]">
-          <span className="font-semibold text-foreground truncate" title={row.original.subject}>
+          <Link
+            to={`/tickets/${row.original.id}`}
+            className="font-semibold text-foreground hover:text-primary transition-colors truncate cursor-pointer"
+            title={row.original.subject}
+          >
             {row.original.subject}
-          </span>
+          </Link>
           <span className="text-[10px] text-muted-foreground truncate mt-0.5">
             {row.original.body}
           </span>
