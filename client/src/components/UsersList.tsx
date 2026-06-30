@@ -73,6 +73,7 @@ export default function UsersList({ users, showClearFilters, onClearFilters, onE
           <Card
             key={user.id}
             className="bg-card/45 backdrop-blur-md border border-border/80 shadow-md hover:shadow-xl hover:border-primary/25 hover:bg-card/85 transition-all duration-300 rounded-2xl group flex flex-col justify-between"
+            data-testid="user-card"
           >
             <div className="p-6 space-y-5">
               {/* User Profile Header */}
