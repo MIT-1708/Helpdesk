@@ -48,5 +48,17 @@ This file serves as a memory/rules reference for the Antigravity agent when work
   - Use `useQuery` for fetching. For loading states, use `isLoading` for the initial skeleton load, and use `isFetching` for handling background refetches / Refresh button loaders.
   - Handle errors via the `error.message` property on the returned query error object.
 
+### 6. Writing and Executing Component Tests
+- **Framework & Libraries**: We use **Vitest** (`vitest`) as the test runner and **React Testing Library** (`@testing-library/react`) for component-level DOM testing.
+- **Vite Configuration**: Always ensure [vite.config.ts](file:///c:/Users/allle/OneDrive/Desktop/Helpdesk/client/vite.config.ts) imports `defineConfig` from `'vitest/config'` (not `'vite'`) so that the `test` properties are recognized by the TypeScript compiler.
+- **Location**: Test files must reside in `__tests__` directories alongside components, e.g., [Users.test.tsx](file:///c:/Users/allle/OneDrive/Desktop/Helpdesk/client/src/pages/__tests__/Users.test.tsx).
+- **Test Setup & Utilities**:
+  - Global DOM cleanup and Jest matchers are configured in [setup.ts](file:///c:/Users/allle/OneDrive/Desktop/Helpdesk/client/src/test/setup.ts).
+  - Use the custom `renderWithQueryClient` helper from [test-utils.tsx](file:///c:/Users/allle/OneDrive/Desktop/Helpdesk/client/src/test/test-utils.tsx) to wrap components that utilize TanStack Query.
+- **Mocking Strategy**: Mock external API layers (such as Axios calls) using `vi.mock('axios')` or `vi.spyOn(axios, 'get')` to isolate component logic.
+- **Execution Commands**:
+  - To run tests once: Run `bun run test:run` inside the `client/` directory.
+  - To run tests in interactive watch mode: Run `bun run test` inside the `client/` directory.
+
 ---
 *Last Updated: 2026-06-30 per user request to maintain project memory for Antigravity.*
