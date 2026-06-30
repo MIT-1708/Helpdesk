@@ -30,6 +30,8 @@ const getTicketsQuerySchema = zod_1.z.object({
     status: zod_1.z.nativeEnum(core_1.TicketStatus).optional(),
     category: zod_1.z.nativeEnum(core_1.TicketCategory).optional(),
     search: zod_1.z.string().optional(),
+    sortBy: zod_1.z.enum(['id', 'subject', 'status', 'category', 'createdAt', 'senderEmail']).default('createdAt'),
+    sortOrder: zod_1.z.enum(['asc', 'desc']).default('desc'),
 });
 router.get('/', requireSession, async (req, res, next) => {
     try {
@@ -37,7 +39,7 @@ router.get('/', requireSession, async (req, res, next) => {
         if (!parsed.success) {
             return res.status(400).json({ error: parsed.error.issues[0]?.message || 'Invalid query parameters.' });
         }
-        const { status, category, search } = parsed.data;
+        const { status, category, search, sortBy, sortOrder } = parsed.data;
         // Build filters
         const where = {};
         if (status) {
@@ -59,11 +61,11 @@ router.get('/', requireSession, async (req, res, next) => {
                 { senderName: { contains: search, mode: 'insensitive' } },
             ];
         }
-        // Retrieve tickets sorted by newest first
+        // Retrieve tickets sorted
         const tickets = await prisma_js_1.default.ticket.findMany({
             where,
             orderBy: {
-                createdAt: 'desc',
+                [sortBy]: sortOrder,
             },
             include: {
                 assignedTo: {

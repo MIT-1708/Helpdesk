@@ -85,13 +85,15 @@ This file serves as a memory/rules reference for the Antigravity agent when work
 ### 8. Tickets Directory Page & Backend API
 - **Backend API Route**: `GET /api/tickets` (implemented in [tickets.ts](file:///c:/Users/allle/OneDrive/Desktop/Helpdesk/server/src/routes/tickets.ts)).
   - Requires active session for both Admins and Agents (`requireSession` middleware).
-  - Orders results by `createdAt` descending (newest first) by default.
   - Supports query filters: `status`, `category` (mapped to Prisma enum variants key via `categoryMap`), and `search`.
+  - Supports dynamic sorting: `sortBy` (`id` | `subject` | `status` | `category` | `createdAt` | `senderEmail`) and `sortOrder` (`asc` | `desc`) parameters passed to Prisma's dynamic `orderBy`.
 - **Frontend Page**: [Tickets.tsx](file:///c:/Users/allle/OneDrive/Desktop/Helpdesk/client/src/pages/Tickets.tsx) mounted at `/tickets` (accessible next to "Users" link in navbar).
+  - **TanStack Table Layout**: Replaces grid with an interactive HTML table using `@tanstack/react-table`.
+  - **Sorting**: Column headers display interactive Chevron indicators. Clicking column headers triggers sorting state updates which refetch from the API, performing sorting on the server.
   - **Type Checking**: The `Ticket` interface properties `status` and `category` are strictly bound to the `TicketStatus` and `TicketCategory` enum types exported from `@helpdesk/core` (do not use generic string types or hardcoded union string values).
 - **Component Tests**:
   - Located in [Tickets.test.tsx](file:///c:/Users/allle/OneDrive/Desktop/Helpdesk/client/src/pages/__tests__/Tickets.test.tsx).
-  - Verifies ticket list rendering, status filters, category filters, and debounced text search parameters passed to axios.
+  - Verifies ticket list rendering, status filters, category filters, debounced text search parameters, and column sorting header clicks passed to axios.
 
 ---
 *Last Updated: 2026-06-30 per user request to maintain project memory for Antigravity.*

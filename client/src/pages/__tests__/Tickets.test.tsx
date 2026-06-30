@@ -136,4 +136,48 @@ describe('Tickets Component', () => {
       );
     }, { timeout: 1000 });
   });
+
+  it('requests tickets with updated sorting when clicking a table header', async () => {
+    vi.mocked(axios.get).mockResolvedValue({ data: mockTickets });
+    renderWithQueryClient(<Tickets />);
+
+    // Wait for table to load
+    await screen.findByText('Refund request');
+
+    // Find the header button for ID
+    const idHeaderButton = screen.getByRole('button', { name: /ID/ });
+    
+    // Clicking the ID header button should change sorting state to asc
+    fireEvent.click(idHeaderButton);
+
+    await waitFor(() => {
+      expect(axios.get).toHaveBeenLastCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          params: expect.objectContaining({
+            sortBy: 'id',
+            sortOrder: 'asc',
+          }),
+        })
+      );
+    });
+
+    // Find the header button for Subject
+    const subjectHeaderButton = screen.getByRole('button', { name: /Subject/ });
+    
+    // Clicking Subject header button should change sorting to subject
+    fireEvent.click(subjectHeaderButton);
+
+    await waitFor(() => {
+      expect(axios.get).toHaveBeenLastCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          params: expect.objectContaining({
+            sortBy: 'subject',
+            sortOrder: 'asc',
+          }),
+        })
+      );
+    });
+  });
 });
