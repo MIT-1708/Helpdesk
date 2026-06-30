@@ -180,4 +180,41 @@ describe('Tickets Component', () => {
       );
     });
   });
+
+  it('requests tickets with combined status, category, search, and sorting parameters', async () => {
+    vi.mocked(axios.get).mockResolvedValue({ data: mockTickets });
+    renderWithQueryClient(<Tickets />);
+
+    // 1. Change status filter to OPEN
+    const selects = screen.getAllByRole('combobox');
+    const statusDropdown = selects[0];
+    fireEvent.change(statusDropdown, { target: { value: TicketStatus.OPEN } });
+
+    // 2. Change category filter to REFUND
+    const categoryDropdown = selects[1];
+    fireEvent.change(categoryDropdown, { target: { value: TicketCategory.REFUND } });
+
+    // 3. Type search query
+    const searchInput = screen.getByPlaceholderText('Search by subject, body, or sender...');
+    fireEvent.change(searchInput, { target: { value: 'database' } });
+
+    // 4. Click ID header to sort
+    const idHeaderButton = await screen.findByRole('button', { name: /ID/ });
+    fireEvent.click(idHeaderButton);
+
+    await waitFor(() => {
+      expect(axios.get).toHaveBeenLastCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          params: expect.objectContaining({
+            status: TicketStatus.OPEN,
+            category: TicketCategory.REFUND,
+            search: 'database',
+            sortBy: 'id',
+            sortOrder: 'asc',
+          }),
+        })
+      );
+    }, { timeout: 1500 });
+  });
 });
