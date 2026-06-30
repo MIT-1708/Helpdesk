@@ -1,6 +1,7 @@
-import { Users as UsersIcon, CheckCircle2, XCircle, Shield, Calendar, Edit2 } from 'lucide-react';
+import { Users as UsersIcon, CheckCircle2, XCircle, Shield, Calendar, Edit2, Trash2 } from 'lucide-react';
 import { Card, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { UserRole } from '@helpdesk/core';
 
 interface User {
   id: string;
@@ -18,9 +19,10 @@ interface UsersListProps {
   showClearFilters: boolean;
   onClearFilters: () => void;
   onEdit: (user: User) => void;
+  onDelete: (user: User) => void;
 }
 
-export default function UsersList({ users, showClearFilters, onClearFilters, onEdit }: UsersListProps) {
+export default function UsersList({ users, showClearFilters, onClearFilters, onEdit, onDelete }: UsersListProps) {
   const getInitials = (name: string) => {
     return name
       .split(' ')
@@ -65,7 +67,7 @@ export default function UsersList({ users, showClearFilters, onClearFilters, onE
   return (
     <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
       {users.map((user) => {
-        const isAdmin = user.role === 'admin';
+        const isAdmin = user.role === UserRole.ADMIN;
 
         return (
           <Card
@@ -115,16 +117,29 @@ export default function UsersList({ users, showClearFilters, onClearFilters, onE
                     </p>
                   </div>
                 </div>
-                {/* Edit Button */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 rounded-lg shrink-0 hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
-                  onClick={() => onEdit(user)}
-                  title="Edit User"
-                >
-                  <Edit2 className="h-4 w-4" />
-                </Button>
+                {/* Action Buttons */}
+                <div className="flex items-center gap-1 shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
+                    onClick={() => onEdit(user)}
+                    title="Edit User"
+                  >
+                    <Edit2 className="h-4 w-4" />
+                  </Button>
+                  {!isAdmin && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive cursor-pointer"
+                      onClick={() => onDelete(user)}
+                      title="Delete User"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
               </div>
 
               {/* Role & Access Info */}

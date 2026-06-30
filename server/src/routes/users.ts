@@ -10,6 +10,9 @@ const router = express.Router();
 // Fetch all users (Admin only)
 router.get('/', async (req, res) => {
   const users = await prisma.user.findMany({
+    where: {
+      deletedAt: null,
+    },
     select: {
       id: true,
       email: true,
@@ -31,9 +34,9 @@ router.get('/', async (req, res) => {
 router.post('/', validateBody(createUserSchema), async (req, res) => {
   const { name, email, password } = req.body;
 
-  // Check if user already exists
-  const existingUser = await prisma.user.findUnique({
-    where: { email: email.toLowerCase() },
+  // Check if active user already exists
+  const existingUser = await prisma.user.findFirst({
+    where: { email: email.toLowerCase(), deletedAt: null },
   });
   if (existingUser) {
     return res.status(400).json({ error: 'A user with this email already exists.' });
@@ -57,9 +60,9 @@ router.put('/:id', validateBody(updateUserSchema), async (req, res) => {
   const { id } = req.params;
   const { name, email, password } = req.body;
 
-  // Check if user exists
-  const user = await prisma.user.findUnique({
-    where: { id },
+  // Check if user exists and is active
+  const user = await prisma.user.findFirst({
+    where: { id, deletedAt: null },
   });
   if (!user) {
     return res.status(404).json({ error: 'User not found.' });
@@ -67,8 +70,8 @@ router.put('/:id', validateBody(updateUserSchema), async (req, res) => {
 
   // Check if new email is taken by another user
   if (email.toLowerCase() !== user.email.toLowerCase()) {
-    const emailTaken = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() },
+    const emailTaken = await prisma.user.findFirst({
+      where: { email: email.toLowerCase(), deletedAt: null },
     });
     if (emailTaken) {
       return res.status(400).json({ error: 'A user with this email already exists.' });
@@ -110,6 +113,35 @@ router.put('/:id', validateBody(updateUserSchema), async (req, res) => {
   }
 
   res.json(updatedUser);
+});
+
+// Delete (soft-delete) a user (Admin only)
+router.delete('/:id', async (req, res) => {
+  const { id } = req.params;
+
+  const user = await prisma.user.findFirst({
+    where: { id, deletedAt: null },
+  });
+  if (!user) {
+    return res.status(404).json({ error: 'User not found.' });
+  }
+
+  if (user.role === 'admin') {
+    return res.status(400).json({ error: 'Administrators cannot be deleted.' });
+  }
+
+  // Soft delete user
+  await prisma.user.update({
+    where: { id },
+    data: { deletedAt: new Date() },
+  });
+
+  // Delete active sessions to force log out
+  await prisma.session.deleteMany({
+    where: { userId: id },
+  });
+
+  res.json({ message: 'User deleted successfully.' });
 });
 
 export default router;

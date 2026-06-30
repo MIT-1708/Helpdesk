@@ -6,7 +6,9 @@ import axios from 'axios';
 import { useQuery } from '@tanstack/react-query';
 import CreateUserModal from '@/components/CreateUserModal';
 import EditUserModal from '@/components/EditUserModal';
+import DeleteUserModal from '@/components/DeleteUserModal';
 import UsersList from '@/components/UsersList';
+import { UserRole } from '@helpdesk/core';
 
 interface User {
   id: string;
@@ -35,14 +37,19 @@ const fetchUsersData = async () => {
 
 export default function Users() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'agent'>('all');
+  const [roleFilter, setRoleFilter] = useState<'all' | UserRole.ADMIN | UserRole.AGENT>('all');
 
   const { data: users = [], isLoading: loading, isFetching, error, refetch: fetchUsers } = useQuery<User[]>({
     queryKey: ['users'],
     queryFn: fetchUsersData,
   });
 
-  const [dialog, setDialog] = useState<{ mode: 'create' } | { mode: 'edit'; user: User } | null>(null);
+  const [dialog, setDialog] = useState<
+    | { mode: 'create' }
+    | { mode: 'edit'; user: User }
+    | { mode: 'delete'; user: User }
+    | null
+  >(null);
 
   const filteredUsers = users.filter((user) => {
     const matchesSearch = 
@@ -127,9 +134,9 @@ export default function Users() {
               All
             </button>
             <button
-              onClick={() => setRoleFilter('admin')}
+              onClick={() => setRoleFilter(UserRole.ADMIN)}
               className={`flex-1 sm:flex-initial text-xs font-semibold px-4 py-2 rounded-lg transition-all cursor-pointer ${
-                roleFilter === 'admin'
+                roleFilter === UserRole.ADMIN
                   ? 'bg-card text-foreground shadow-sm'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
@@ -137,9 +144,9 @@ export default function Users() {
               Admins
             </button>
             <button
-              onClick={() => setRoleFilter('agent')}
+              onClick={() => setRoleFilter(UserRole.AGENT)}
               className={`flex-1 sm:flex-initial text-xs font-semibold px-4 py-2 rounded-lg transition-all cursor-pointer ${
-                roleFilter === 'agent'
+                roleFilter === UserRole.AGENT
                   ? 'bg-card text-foreground shadow-sm'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
@@ -192,6 +199,7 @@ export default function Users() {
               setRoleFilter('all');
             }}
             onEdit={(user) => setDialog({ mode: 'edit', user })}
+            onDelete={(user) => setDialog({ mode: 'delete', user })}
           />
         )}
       </div>
@@ -207,6 +215,14 @@ export default function Users() {
       <EditUserModal
         isOpen={dialog?.mode === 'edit'}
         user={dialog?.mode === 'edit' ? dialog.user : null}
+        onClose={() => setDialog(null)}
+        onSuccess={fetchUsers}
+      />
+
+      {/* Delete User Modal */}
+      <DeleteUserModal
+        isOpen={dialog?.mode === 'delete'}
+        user={dialog?.mode === 'delete' ? dialog.user : null}
         onClose={() => setDialog(null)}
         onSuccess={fetchUsers}
       />

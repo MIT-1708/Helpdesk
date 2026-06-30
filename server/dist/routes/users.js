@@ -13,6 +13,9 @@ const router = express_1.default.Router();
 // Fetch all users (Admin only)
 router.get('/', async (req, res) => {
     const users = await prisma_js_1.default.user.findMany({
+        where: {
+            deletedAt: null,
+        },
         select: {
             id: true,
             email: true,
@@ -32,9 +35,9 @@ router.get('/', async (req, res) => {
 // Create a new agent user (Admin only)
 router.post('/', (0, validate_js_1.validateBody)(core_1.createUserSchema), async (req, res) => {
     const { name, email, password } = req.body;
-    // Check if user already exists
-    const existingUser = await prisma_js_1.default.user.findUnique({
-        where: { email: email.toLowerCase() },
+    // Check if active user already exists
+    const existingUser = await prisma_js_1.default.user.findFirst({
+        where: { email: email.toLowerCase(), deletedAt: null },
     });
     if (existingUser) {
         return res.status(400).json({ error: 'A user with this email already exists.' });
@@ -54,17 +57,17 @@ router.post('/', (0, validate_js_1.validateBody)(core_1.createUserSchema), async
 router.put('/:id', (0, validate_js_1.validateBody)(core_1.updateUserSchema), async (req, res) => {
     const { id } = req.params;
     const { name, email, password } = req.body;
-    // Check if user exists
-    const user = await prisma_js_1.default.user.findUnique({
-        where: { id },
+    // Check if user exists and is active
+    const user = await prisma_js_1.default.user.findFirst({
+        where: { id, deletedAt: null },
     });
     if (!user) {
         return res.status(404).json({ error: 'User not found.' });
     }
     // Check if new email is taken by another user
     if (email.toLowerCase() !== user.email.toLowerCase()) {
-        const emailTaken = await prisma_js_1.default.user.findUnique({
-            where: { email: email.toLowerCase() },
+        const emailTaken = await prisma_js_1.default.user.findFirst({
+            where: { email: email.toLowerCase(), deletedAt: null },
         });
         if (emailTaken) {
             return res.status(400).json({ error: 'A user with this email already exists.' });
@@ -102,5 +105,28 @@ router.put('/:id', (0, validate_js_1.validateBody)(core_1.updateUserSchema), asy
         });
     }
     res.json(updatedUser);
+});
+// Delete (soft-delete) a user (Admin only)
+router.delete('/:id', async (req, res) => {
+    const { id } = req.params;
+    const user = await prisma_js_1.default.user.findFirst({
+        where: { id, deletedAt: null },
+    });
+    if (!user) {
+        return res.status(404).json({ error: 'User not found.' });
+    }
+    if (user.role === 'admin') {
+        return res.status(400).json({ error: 'Administrators cannot be deleted.' });
+    }
+    // Soft delete user
+    await prisma_js_1.default.user.update({
+        where: { id },
+        data: { deletedAt: new Date() },
+    });
+    // Delete active sessions to force log out
+    await prisma_js_1.default.session.deleteMany({
+        where: { userId: id },
+    });
+    res.json({ message: 'User deleted successfully.' });
 });
 exports.default = router;

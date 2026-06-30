@@ -4,6 +4,7 @@ import { useSession, signOut } from './lib/auth-client'
 import Login from './pages/Login'
 import Users from './pages/Users'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { UserRole } from '@helpdesk/core'
 
 const queryClient = new QueryClient()
 
@@ -31,7 +32,7 @@ function Layout({ children }: { children: React.ReactNode }) {
         </Link>
         
         <div className="flex items-center gap-5">
-          {!isPending && user?.role === 'admin' && (
+          {!isPending && user?.role === UserRole.ADMIN && (
             <Link
               to="/users"
               className="text-xs font-semibold text-muted-foreground hover:text-foreground transition-all px-3 py-1.5 rounded-lg hover:bg-muted/50"
@@ -194,7 +195,7 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/login" replace />
   }
 
-  if (sessionState.user.role !== 'admin') {
+  if (sessionState.user.role !== UserRole.ADMIN) {
     return <Navigate to="/" replace />
   }
 

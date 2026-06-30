@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import axios from 'axios';
 import Users from '../Users';
 import { renderWithQueryClient } from '@/test/test-utils';
+import { UserRole } from '@helpdesk/core';
 
 // Mock axios
 vi.mock('axios');
@@ -15,7 +16,7 @@ const mockUsers = [
     name: 'Admin User',
     emailVerified: true,
     image: null,
-    role: 'admin',
+    role: UserRole.ADMIN,
     createdAt: '2026-01-01T12:00:00.000Z',
     updatedAt: '2026-01-01T12:00:00.000Z',
   },
@@ -25,7 +26,7 @@ const mockUsers = [
     name: 'Agent User',
     emailVerified: false,
     image: null,
-    role: 'agent',
+    role: UserRole.AGENT,
     createdAt: '2026-02-15T12:00:00.000Z',
     updatedAt: '2026-02-15T12:00:00.000Z',
   },
@@ -62,8 +63,8 @@ describe('Users Component', () => {
     expect(screen.getByText('agent@example.com')).toBeInTheDocument();
     
     // Verify badges and roles
-    expect(screen.getByText('admin')).toBeInTheDocument();
-    expect(screen.getByText('agent')).toBeInTheDocument();
+    expect(screen.getByText(UserRole.ADMIN)).toBeInTheDocument();
+    expect(screen.getByText(UserRole.AGENT)).toBeInTheDocument();
     
     // Matcher for the "2 of 2 Users" count
     expect(screen.getByText('2 of 2 Users')).toBeInTheDocument();
@@ -228,7 +229,7 @@ describe('Users Component', () => {
 
   it('validates form inputs and submits successfully', async () => {
     vi.mocked(axios.get).mockResolvedValue({ data: mockUsers });
-    vi.mocked(axios.post).mockResolvedValue({ data: { id: 'new-user', name: 'New Agent', email: 'newagent@example.com', role: 'agent' } });
+    vi.mocked(axios.post).mockResolvedValue({ data: { id: 'new-user', name: 'New Agent', email: 'newagent@example.com', role: UserRole.AGENT } });
     
     const user = userEvent.setup();
     renderWithQueryClient(<Users />);
@@ -359,6 +360,41 @@ describe('Users Component', () => {
         },
         expect.objectContaining({ withCredentials: true })
       );
+    });
+  });
+
+  it('displays delete button only for non-admins, opens delete modal, and deletes successfully', async () => {
+    vi.mocked(axios.get).mockResolvedValue({ data: mockUsers });
+    vi.mocked(axios.delete).mockResolvedValue({ data: { message: 'User deleted successfully.' } });
+
+    const user = userEvent.setup();
+    renderWithQueryClient(<Users />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Admin User')).toBeInTheDocument();
+      expect(screen.getByText('Agent User')).toBeInTheDocument();
+    });
+
+    const deleteButtons = screen.getAllByTitle('Delete User');
+    expect(deleteButtons.length).toBe(1);
+
+    await user.click(deleteButtons[0]);
+
+    expect(screen.getByRole('heading', { name: 'Delete User Account' })).toBeInTheDocument();
+    expect(screen.getByText(/Are you sure you want to delete/i)).toBeInTheDocument();
+
+    const confirmButton = screen.getByTestId('confirm-delete-button');
+    await user.click(confirmButton);
+
+    await waitFor(() => {
+      expect(axios.delete).toHaveBeenCalledWith(
+        expect.stringContaining('/api/admin/users/user-2'),
+        expect.objectContaining({ withCredentials: true })
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByRole('heading', { name: 'Delete User Account' })).not.toBeInTheDocument();
     });
   });
 });

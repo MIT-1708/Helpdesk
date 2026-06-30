@@ -21,8 +21,12 @@ exports.auth = (0, better_auth_1.betterAuth)({
         additionalFields: {
             role: {
                 type: "string",
-                required: false,
+                required: true,
                 defaultValue: "agent",
+            },
+            deletedAt: {
+                type: "date",
+                required: false,
             },
         },
     },
@@ -44,9 +48,21 @@ exports.auth = (0, better_auth_1.betterAuth)({
     },
     hooks: {
         after: (0, api_1.createAuthMiddleware)(async (ctx) => {
-            if (ctx.path === "/get-session" && ctx.context.returned) {
+            if (ctx.context.returned) {
                 const returned = ctx.context.returned;
-                if (returned && returned.session) {
+                if (returned && returned.user) {
+                    const dbUser = await prisma_js_1.default.user.findUnique({
+                        where: { id: returned.user.id },
+                    });
+                    if (dbUser && dbUser.deletedAt) {
+                        return ctx.json({
+                            error: "Your account has been deleted.",
+                            session: null,
+                            user: null,
+                        }, { status: 401 });
+                    }
+                }
+                if (returned && returned.session && ctx.path === "/get-session") {
                     const { token, ...sanitizedSession } = returned.session;
                     return ctx.json({
                         ...returned,
@@ -69,8 +85,12 @@ exports.adminAuthHelper = (0, better_auth_1.betterAuth)({
         additionalFields: {
             role: {
                 type: "string",
-                required: false,
+                required: true,
                 defaultValue: "agent",
+            },
+            deletedAt: {
+                type: "date",
+                required: false,
             },
         },
     },
