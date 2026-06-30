@@ -58,6 +58,7 @@ This file serves as a memory/rules reference for the Antigravity agent when work
 
 
 ### 6. Writing and Executing Component Tests
+- **Testing Philosophy**: Rely primarily on **Component/Unit Tests** (using Vitest and React Testing Library) to test user interfaces, page states, interactions, and filtering/sorting logic. Only write **E2E tests** (Playwright) when strictly necessary (e.g., verifying multi-page user flows, session cookie handling, or backend webhooks).
 - **Framework & Libraries**: We use **Vitest** (`vitest`) as the test runner and **React Testing Library** (`@testing-library/react`) for component-level DOM testing.
 - **Vite Configuration**: Always ensure [vite.config.ts](file:///c:/Users/allle/OneDrive/Desktop/Helpdesk/client/vite.config.ts) imports `defineConfig` from `'vitest/config'` (not `'vite'`) so that the `test` properties are recognized by the TypeScript compiler.
 - **Location**: Test files must reside in `__tests__` directories alongside components, e.g., [Users.test.tsx](file:///c:/Users/allle/OneDrive/Desktop/Helpdesk/client/src/pages/__tests__/Users.test.tsx).
@@ -71,7 +72,7 @@ This file serves as a memory/rules reference for the Antigravity agent when work
 
 ### 7. Support Email Inbound Webhook & Ticket Schema
 - **Webhook Endpoint**: `POST /api/webhooks/inbound-email` (implemented in [inbound.ts](file:///c:/Users/allle/OneDrive/Desktop/Helpdesk/server/src/routes/inbound.ts)).
-  - Body payload: `{ from: string, name?: string, subject: string, body: string, bodyHtml?: string }` (validated via Zod schema).
+  - Body payload: `{ from: string, name?: string, subject: string, body: string, bodyHtml?: string, category?: string }` (validated via Zod schema).
 - **Database Schema**:
   - `Ticket` model has direct fields for `body`, `bodyHtml`, `senderEmail`, and `senderName` matching user database requirements.
   - Uses PostgreSQL enums `TicketStatus` (`open`, `resolved`, `closed`) and `TicketCategory` (`GENERAL` -> "General Question", `TECHNICAL` -> "Technical Question", `REFUND` -> "Refund Request") mapped via `@map` in [schema.prisma](file:///c:/Users/allle/OneDrive/Desktop/Helpdesk/server/prisma/schema.prisma).
@@ -81,6 +82,18 @@ This file serves as a memory/rules reference for the Antigravity agent when work
   - Run webhook tests: `bun run test:setup; bunx playwright test e2e/inbound.spec.ts`
   - Database resets cleanly with `--accept-data-loss` and `--force-reset` parameters configured in [test-setup.ts](file:///c:/Users/allle/OneDrive/Desktop/Helpdesk/scripts/test-setup.ts).
 
+### 8. Tickets Directory Page & Backend API
+- **Backend API Route**: `GET /api/tickets` (implemented in [tickets.ts](file:///c:/Users/allle/OneDrive/Desktop/Helpdesk/server/src/routes/tickets.ts)).
+  - Requires active session for both Admins and Agents (`requireSession` middleware).
+  - Orders results by `createdAt` descending (newest first) by default.
+  - Supports query filters: `status`, `category` (mapped to Prisma enum variants key via `categoryMap`), and `search`.
+- **Frontend Page**: [Tickets.tsx](file:///c:/Users/allle/OneDrive/Desktop/Helpdesk/client/src/pages/Tickets.tsx) mounted at `/tickets` (accessible next to "Users" link in navbar).
+  - **Type Checking**: The `Ticket` interface properties `status` and `category` are strictly bound to the `TicketStatus` and `TicketCategory` enum types exported from `@helpdesk/core` (do not use generic string types or hardcoded union string values).
+- **Component Tests**:
+  - Located in [Tickets.test.tsx](file:///c:/Users/allle/OneDrive/Desktop/Helpdesk/client/src/pages/__tests__/Tickets.test.tsx).
+  - Verifies ticket list rendering, status filters, category filters, and debounced text search parameters passed to axios.
+
 ---
 *Last Updated: 2026-06-30 per user request to maintain project memory for Antigravity.*
+
 

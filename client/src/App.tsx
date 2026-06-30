@@ -3,6 +3,7 @@ import { Sparkles, LogOut, User as UserIcon } from 'lucide-react'
 import { useSession, signOut } from './lib/auth-client'
 import Login from './pages/Login'
 import Users from './pages/Users'
+import Tickets from './pages/Tickets'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { UserRole } from '@helpdesk/core'
 
@@ -32,6 +33,14 @@ function Layout({ children }: { children: React.ReactNode }) {
         </Link>
         
         <div className="flex items-center gap-5">
+          {!isPending && user && (
+            <Link
+              to="/tickets"
+              className="text-xs font-semibold text-muted-foreground hover:text-foreground transition-all px-3 py-1.5 rounded-lg hover:bg-muted/50"
+            >
+              Tickets
+            </Link>
+          )}
           {!isPending && user?.role === UserRole.ADMIN && (
             <Link
               to="/users"
@@ -254,6 +263,14 @@ function App() {
                 <AdminRoute>
                   <Users />
                 </AdminRoute>
+              } 
+            />
+            <Route 
+              path="/tickets" 
+              element={
+                <ProtectedRoute>
+                  <Tickets />
+                </ProtectedRoute>
               } 
             />
             {/* Fallback route */}

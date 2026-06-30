@@ -15,9 +15,10 @@ const inboundEmailSchema = zod_1.z.object({
     subject: zod_1.z.string().min(1, 'Subject cannot be empty.'),
     body: zod_1.z.string().min(1, 'Body cannot be empty.'),
     bodyHtml: zod_1.z.string().optional(),
+    category: zod_1.z.nativeEnum(core_1.TicketCategory).optional(),
 });
 router.post('/inbound-email', (0, validate_js_1.validateBody)(inboundEmailSchema), async (req, res) => {
-    const { from, name, subject, body, bodyHtml } = req.body;
+    const { from, name, subject, body, bodyHtml, category } = req.body;
     // 1. Threading detection: Check if subject contains [Ticket #<Int>]
     const ticketIdMatch = subject.match(/\[Ticket #(\d+)\]/);
     if (ticketIdMatch) {
@@ -50,6 +51,11 @@ router.post('/inbound-email', (0, validate_js_1.validateBody)(inboundEmailSchema
             });
         }
     }
+    const categoryMap = {
+        'General Question': 'GENERAL',
+        'Technical Question': 'TECHNICAL',
+        'Refund Request': 'REFUND',
+    };
     // 2. Create new Ticket if no thread matched
     const newTicket = await prisma_js_1.default.ticket.create({
         data: {
@@ -59,6 +65,7 @@ router.post('/inbound-email', (0, validate_js_1.validateBody)(inboundEmailSchema
             senderEmail: from.toLowerCase(),
             senderName: name || null,
             status: core_1.TicketStatus.OPEN,
+            category: category ? (categoryMap[category] || null) : null,
             messages: {
                 create: {
                     sender: 'student',

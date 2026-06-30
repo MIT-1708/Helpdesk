@@ -2,7 +2,7 @@ import express from 'express';
 import prisma from '../prisma.js';
 import { z } from 'zod';
 import { validateBody } from '../middleware/validate.js';
-import { TicketStatus } from '@helpdesk/core';
+import { TicketStatus, TicketCategory } from '@helpdesk/core';
 
 const router = express.Router();
 
@@ -12,10 +12,11 @@ const inboundEmailSchema = z.object({
   subject: z.string().min(1, 'Subject cannot be empty.'),
   body: z.string().min(1, 'Body cannot be empty.'),
   bodyHtml: z.string().optional(),
+  category: z.nativeEnum(TicketCategory).optional(),
 });
 
 router.post('/inbound-email', validateBody(inboundEmailSchema), async (req, res) => {
-  const { from, name, subject, body, bodyHtml } = req.body;
+  const { from, name, subject, body, bodyHtml, category } = req.body;
 
   // 1. Threading detection: Check if subject contains [Ticket #<Int>]
   const ticketIdMatch = subject.match(/\[Ticket #(\d+)\]/);
@@ -54,15 +55,22 @@ router.post('/inbound-email', validateBody(inboundEmailSchema), async (req, res)
     }
   }
 
-  // 2. Create new Ticket if no thread matched
-  const newTicket = await prisma.ticket.create({
-    data: {
-      subject: subject,
-      body: body,
-      bodyHtml: bodyHtml || null,
-      senderEmail: from.toLowerCase(),
-      senderName: name || null,
-      status: TicketStatus.OPEN,
+const categoryMap: Record<string, 'GENERAL' | 'TECHNICAL' | 'REFUND'> = {
+  'General Question': 'GENERAL',
+  'Technical Question': 'TECHNICAL',
+  'Refund Request': 'REFUND',
+};
+
+// 2. Create new Ticket if no thread matched
+const newTicket = await prisma.ticket.create({
+  data: {
+    subject: subject,
+    body: body,
+    bodyHtml: bodyHtml || null,
+    senderEmail: from.toLowerCase(),
+    senderName: name || null,
+    status: TicketStatus.OPEN,
+    category: category ? (categoryMap[category] || null) : null,
       messages: {
         create: {
           sender: 'student',

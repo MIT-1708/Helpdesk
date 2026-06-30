@@ -12,6 +12,7 @@ const node_1 = require("better-auth/node");
 const auth_js_1 = require("./auth.js");
 const users_js_1 = __importDefault(require("./routes/users.js"));
 const inbound_js_1 = __importDefault(require("./routes/inbound.js"));
+const tickets_js_1 = __importDefault(require("./routes/tickets.js"));
 // Validate environment variables first
 const env_validator_js_1 = require("./utils/env-validator.js");
 (0, env_validator_js_1.validateEnv)();
@@ -80,6 +81,7 @@ adminRouter.use(requireAdmin);
 adminRouter.use('/users', users_js_1.default);
 app.use('/api/admin', adminRouter);
 app.use('/api/webhooks', inbound_js_1.default);
+app.use('/api/tickets', tickets_js_1.default);
 // Health Check Endpoint (checks DB connectivity)
 // Note: We use local try/catch here because we want to return a custom unhealthy JSON payload.
 app.get('/api/health', async (req, res) => {
