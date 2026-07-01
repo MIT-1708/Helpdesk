@@ -11,7 +11,7 @@ const prisma_js_1 = __importDefault(require("./prisma.js"));
 const node_1 = require("better-auth/node");
 const auth_js_1 = require("./auth.js");
 const users_js_1 = __importDefault(require("./routes/users.js"));
-const inbound_js_1 = __importDefault(require("./routes/inbound.js"));
+const webhook_js_1 = __importDefault(require("./routes/webhook.js"));
 const tickets_js_1 = __importDefault(require("./routes/tickets.js"));
 const replies_js_1 = __importDefault(require("./routes/replies.js"));
 // Validate environment variables first
@@ -84,7 +84,7 @@ const adminRouter = express_1.default.Router();
 adminRouter.use(requireAdmin);
 adminRouter.use('/users', users_js_1.default);
 app.use('/api/admin', adminRouter);
-app.use('/api/webhooks', inbound_js_1.default);
+app.use('/api/webhooks', webhook_js_1.default);
 app.use('/api/tickets', tickets_js_1.default);
 app.use('/api/tickets/:ticketId/messages', replies_js_1.default);
 // Health Check Endpoint (checks DB connectivity)
@@ -120,3 +120,4 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
     console.log(`[server] Server running on http://localhost:${PORT}`);
 });
+// Trigger watch reload to pick up the updated GROQ_API_KEY environment variable.

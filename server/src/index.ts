@@ -7,7 +7,7 @@ import { toNodeHandler, fromNodeHeaders } from 'better-auth/node';
 import { auth, adminAuthHelper } from './auth.js';
 import { z } from 'zod';
 import usersRouter from './routes/users.js';
-import inboundRouter from './routes/inbound.js';
+import webhookRouter from './routes/webhook.js';
 import ticketsRouter from './routes/tickets.js';
 import repliesRouter from './routes/replies.js';
 
@@ -99,7 +99,7 @@ adminRouter.use(requireAdmin);
 adminRouter.use('/users', usersRouter);
 
 app.use('/api/admin', adminRouter);
-app.use('/api/webhooks', inboundRouter);
+app.use('/api/webhooks', webhookRouter);
 app.use('/api/tickets', ticketsRouter);
 app.use('/api/tickets/:ticketId/messages', repliesRouter);
 
