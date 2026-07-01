@@ -148,6 +148,92 @@ describe('TicketDetails Component', () => {
     });
   });
 
+  it('updates ticket status and category successfully', async () => {
+    vi.mocked(axios.get).mockResolvedValue({ data: mockTicketDetails });
+    vi.mocked(axios.patch).mockResolvedValue({ data: { ...mockTicketDetails, status: TicketStatus.RESOLVED } });
+
+    renderComponent();
+
+    // Wait for load
+    await waitFor(() => {
+      expect(screen.getByText('Refund request for Course 101')).toBeInTheDocument();
+    });
+
+    // Find category select and change
+    const categorySelect = screen.getByTestId('category-select');
+    fireEvent.change(categorySelect, { target: { value: TicketCategory.TECHNICAL } });
+
+    await waitFor(() => {
+      expect(axios.patch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/tickets/1'),
+        { category: TicketCategory.TECHNICAL },
+        { withCredentials: true }
+      );
+    });
+
+    // Find status select and change
+    const statusSelect = screen.getByTestId('status-select');
+    fireEvent.change(statusSelect, { target: { value: TicketStatus.RESOLVED } });
+
+    await waitFor(() => {
+      expect(axios.patch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/tickets/1'),
+        { status: TicketStatus.RESOLVED },
+        { withCredentials: true }
+      );
+    });
+  });
+
+  it('assigns and unassigns ticket successfully', async () => {
+    vi.mocked(axios.get).mockImplementation((url) => {
+      if (url.includes('/assignees')) {
+        return Promise.resolve({
+          data: [
+            { id: 'agent-1', name: 'Agent User', email: 'agent@example.com', role: 'agent' },
+            { id: 'agent-2', name: 'Other Agent', email: 'other@example.com', role: 'agent' }
+          ]
+        });
+      }
+      return Promise.resolve({ data: mockTicketDetails });
+    });
+    vi.mocked(axios.patch).mockResolvedValue({ data: { ...mockTicketDetails, assignedToId: 'agent-2' } });
+
+    renderComponent();
+
+    // Wait for load
+    await waitFor(() => {
+      expect(screen.getByText('Refund request for Course 101')).toBeInTheDocument();
+    });
+
+    // Click change assignee button to open assignee select
+    const changeButton = screen.getByRole('button', { name: /change/i });
+    fireEvent.click(changeButton);
+
+    // Wait for select dropdown
+    const assigneeSelect = await screen.findByTestId('assignee-select');
+    fireEvent.change(assigneeSelect, { target: { value: 'agent-2' } });
+
+    await waitFor(() => {
+      expect(axios.patch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/tickets/1/assign'),
+        { agentId: 'agent-2' },
+        { withCredentials: true }
+      );
+    });
+
+    // Unassign ticket
+    const unassignButton = screen.getByRole('button', { name: /unassign/i });
+    fireEvent.click(unassignButton);
+
+    await waitFor(() => {
+      expect(axios.patch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/tickets/1/assign'),
+        { agentId: null },
+        { withCredentials: true }
+      );
+    });
+  });
+
   it('renders error state on API failure', async () => {
     vi.mocked(axios.get).mockRejectedValue(new Error('Network Error'));
     renderComponent();

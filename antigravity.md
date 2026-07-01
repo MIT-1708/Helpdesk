@@ -58,7 +58,7 @@ This file serves as a memory/rules reference for the Antigravity agent when work
 
 
 ### 6. Writing and Executing Component Tests
-- **Testing Philosophy**: Rely primarily on **Component/Unit Tests** (using Vitest and React Testing Library) to test user interfaces, page states, interactions, and filtering/sorting logic. Only write **E2E tests** (Playwright) when strictly necessary (e.g., verifying multi-page user flows, session cookie handling, or backend webhooks).
+- **Testing Philosophy**: Rely primarily on Component/Unit Tests (using Vitest and React Testing Library) to test user interfaces, page states, interactions, and filtering/sorting/replying logic. Do not write E2E tests for features covered by unit tests. Keep E2E tests (Playwright) strictly limited to verifying cross-page user flows/navigation, session cookie handling, and backend email webhook integrations that cannot be isolated in unit tests.
 - **Framework & Libraries**: We use **Vitest** (`vitest`) as the test runner and **React Testing Library** (`@testing-library/react`) for component-level DOM testing.
 - **Vite Configuration**: Always ensure [vite.config.ts](file:///c:/Users/allle/OneDrive/Desktop/Helpdesk/client/vite.config.ts) imports `defineConfig` from `'vitest/config'` (not `'vite'`) so that the `test` properties are recognized by the TypeScript compiler.
 - **Location**: Test files must reside in `__tests__` directories alongside components, e.g., [Users.test.tsx](file:///c:/Users/allle/OneDrive/Desktop/Helpdesk/client/src/pages/__tests__/Users.test.tsx).

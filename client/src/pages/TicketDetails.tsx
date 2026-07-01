@@ -4,39 +4,9 @@ import { ArrowLeft, Calendar, Tag, Shield, User as UserIcon, AlertCircle, Refres
 import axios from 'axios';
 import { useQuery, keepPreviousData, useQueryClient } from '@tanstack/react-query';
 import { TicketStatus, TicketCategory } from '@helpdesk/core';
+import type { Ticket, Message } from '@helpdesk/core';
 import { Button } from '@/components/ui/button';
 import { ReplySection } from '../components/ReplySection';
-
-interface Message {
-  id: string;
-  sender: string;
-  senderEmail: string;
-  senderType: 'agent' | 'customer';
-  body: string;
-  createdAt: string;
-}
-
-interface Ticket {
-  id: number;
-  subject: string;
-  body: string;
-  bodyHtml: string | null;
-  status: TicketStatus;
-  category: TicketCategory | null;
-  senderEmail: string;
-  senderName: string | null;
-  assignedToId: string | null;
-  createdAt: string;
-  updatedAt: string;
-  assignedTo: {
-    id: string;
-    name: string;
-    email: string;
-    role: string;
-  } | null;
-  messages: Message[];
-}
-
 const fetchTicketDetails = async (id: string): Promise<Ticket> => {
   const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
   const response = await axios.get(`${baseUrl}/api/tickets/${id}`, {

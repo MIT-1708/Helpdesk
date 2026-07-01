@@ -2,37 +2,9 @@ import { useState } from 'react';
 import axios from 'axios';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
+import type { Ticket, Message } from '@helpdesk/core';
 
-export interface Message {
-  id: string;
-  sender: string;
-  senderEmail: string;
-  senderType: 'agent' | 'customer';
-  body: string;
-  createdAt: string;
-}
-
-export interface Ticket {
-  id: number;
-  subject: string;
-  body: string;
-  bodyHtml: string | null;
-  status: string;
-  category: string | null;
-  senderEmail: string;
-  senderName: string | null;
-  assignedToId: string | null;
-  createdAt: string;
-  updatedAt: string;
-  assignedTo: any;
-  messages: Message[];
-}
-
-interface ReplySectionProps {
-  ticket: Ticket;
-}
-
-export function ReplySection({ ticket }: ReplySectionProps) {
+export function ReplySection({ ticket }: { ticket: Ticket }) {
   const queryClient = useQueryClient();
   const [replyText, setReplyText] = useState('');
   const [submittingReply, setSubmittingReply] = useState(false);

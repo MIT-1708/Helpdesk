@@ -6,32 +6,13 @@ import { Button } from '@/components/ui/button';
 import axios from 'axios';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { TicketStatus, TicketCategory } from '@helpdesk/core';
+import type { Ticket } from '@helpdesk/core';
 import {
   useReactTable,
   getCoreRowModel,
   flexRender,
 } from '@tanstack/react-table';
 import type { SortingState } from '@tanstack/react-table';
-
-interface Ticket {
-  id: number;
-  subject: string;
-  body: string;
-  bodyHtml: string | null;
-  status: TicketStatus;
-  category: TicketCategory | null;
-  senderEmail: string;
-  senderName: string | null;
-  assignedToId: string | null;
-  createdAt: string;
-  updatedAt: string;
-  assignedTo: {
-    id: string;
-    name: string;
-    email: string;
-    role: string;
-  } | null;
-}
 
 interface PaginationMetadata {
   totalCount: number;
