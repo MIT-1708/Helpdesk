@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import type { Ticket, Message } from '@helpdesk/core';
+import DOMPurify from 'dompurify';
 
 export function ReplySection({ ticket }: { ticket: Ticket }) {
   const queryClient = useQueryClient();
@@ -57,13 +58,20 @@ export function ReplySection({ ticket }: { ticket: Ticket }) {
                     <span>{new Date(msg.createdAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</span>
                   </div>
                   <div
-                    className={`p-3 rounded-2xl text-xs whitespace-pre-wrap leading-relaxed border ${
+                    className={`p-3 rounded-2xl text-xs leading-relaxed border ${
                       isAgent
                         ? 'bg-primary/10 border-primary/20 text-foreground rounded-tr-none'
                         : 'bg-muted/50 border-border text-foreground rounded-tl-none'
                     }`}
                   >
-                    {msg.body}
+                    {msg.bodyHtml ? (
+                      <div
+                        className="parsed-html"
+                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(msg.bodyHtml) }}
+                      />
+                    ) : (
+                      <span className="whitespace-pre-wrap">{msg.body}</span>
+                    )}
                   </div>
                 </div>
               );

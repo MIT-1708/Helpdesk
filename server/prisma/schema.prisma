@@ -96,6 +96,7 @@ model Message {
   senderEmail String
   senderType  SenderType @default(customer)
   body        String
+  bodyHtml    String?
   aiDraft     String?
   createdAt   DateTime   @default(now())
   ticket      Ticket     @relation(fields: [ticketId], references: [id], onDelete: Cascade)

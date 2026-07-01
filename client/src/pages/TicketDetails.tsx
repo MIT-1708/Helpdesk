@@ -7,6 +7,7 @@ import { TicketStatus, TicketCategory } from '@helpdesk/core';
 import type { Ticket, Message } from '@helpdesk/core';
 import { Button } from '@/components/ui/button';
 import { ReplySection } from '../components/ReplySection';
+import DOMPurify from 'dompurify';
 const fetchTicketDetails = async (id: string): Promise<Ticket> => {
   const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
   const response = await axios.get(`${baseUrl}/api/tickets/${id}`, {
@@ -195,9 +196,16 @@ export default function TicketDetails() {
             {/* Ticket body details */}
             <div className="bg-card/30 backdrop-blur-sm border border-border/80 p-6 rounded-2xl shadow-sm space-y-4">
               <h2 className="text-base font-bold text-foreground border-b border-border/50 pb-2">Description</h2>
-              <div className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed">
-                {ticket.body}
-              </div>
+              {ticket.bodyHtml ? (
+                <div
+                  className="text-sm text-foreground/90 leading-relaxed parsed-html"
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(ticket.bodyHtml) }}
+                />
+              ) : (
+                <div className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed">
+                  {ticket.body}
+                </div>
+              )}
             </div>
 
             {/* Reply Section */}

@@ -6,6 +6,7 @@ export interface Message {
   senderEmail: string;
   senderType: 'agent' | 'customer';
   body: string;
+  bodyHtml: string | null;
   createdAt: string;
 }
 

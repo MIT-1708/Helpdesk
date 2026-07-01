@@ -234,6 +234,29 @@ describe('TicketDetails Component', () => {
     });
   });
 
+  it('sanitizes and renders ticket bodyHtml successfully using DOMPurify', async () => {
+    const mockTicketWithHtml = {
+      ...mockTicketDetails,
+      bodyHtml: '<div>Safe text <script>alert("xss")</script><img src="x" onerror="alert(1)"></div>',
+    };
+    vi.mocked(axios.get).mockResolvedValue({ data: mockTicketWithHtml });
+    renderComponent();
+
+    // Verify loading of ticket details
+    await waitFor(() => {
+      expect(screen.getByText('Refund request for Course 101')).toBeInTheDocument();
+    });
+
+    // Verify safe text is rendered
+    expect(screen.getByText(/Safe text/)).toBeInTheDocument();
+
+    // Verify script and onerror attributes are NOT rendered in DOM
+    const rawHTMLBlock = document.body.innerHTML;
+    expect(rawHTMLBlock).not.toContain('<script>');
+    expect(rawHTMLBlock).not.toContain('alert("xss")');
+    expect(rawHTMLBlock).not.toContain('onerror=');
+  });
+
   it('renders error state on API failure', async () => {
     vi.mocked(axios.get).mockRejectedValue(new Error('Network Error'));
     renderComponent();

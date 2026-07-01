@@ -112,6 +112,9 @@ This file serves as a memory/rules reference for the Antigravity agent when work
 - **Rule**: If some code is reusable (e.g., helper functions, middleware, schemas, or utilities), reuse it instead of duplicating it.
 - **Rule**: New features should be implemented in dedicated, decoupled modules rather than overloading existing controllers or router files (e.g., ticket replying logic should be placed in its own [replies.ts](file:///c:/Users/allle/OneDrive/Desktop/Helpdesk/server/src/routes/replies.ts) module rather than [tickets.ts](file:///c:/Users/allle/OneDrive/Desktop/Helpdesk/server/src/routes/tickets.ts)).
 
+### 11. Security & HTML Sanitization
+- **Rule**: Whenever rendering user-supplied HTML content in the frontend (such as rendering rich email descriptions via `dangerouslySetInnerHTML`), you **MUST** import `DOMPurify` and sanitize the input (e.g., `DOMPurify.sanitize(htmlString)`) to protect against Cross-Site Scripting (XSS) attacks.
+
 ---
 *Last Updated: 2026-07-01 per user request to maintain project memory for Antigravity.*
 

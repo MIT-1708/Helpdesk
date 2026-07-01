@@ -14,7 +14,8 @@ router.post('/', requireSession, async (req, res, next) => {
     }
 
     const bodySchema = z.object({
-      body: z.string().min(1, 'Reply message cannot be empty.'),
+      body: z.string().min(1, 'Reply message cannot be empty.').max(10000, 'Reply message is too long (maximum 10,000 characters).'),
+      bodyHtml: z.string().max(20000, 'HTML reply body cannot exceed 20,000 characters.').optional(),
     });
 
     const parsed = bodySchema.safeParse(req.body);
@@ -41,6 +42,7 @@ router.post('/', requireSession, async (req, res, next) => {
         senderEmail,
         senderType: 'agent',
         body: parsed.data.body,
+        bodyHtml: parsed.data.bodyHtml ?? null,
       },
     });
 

@@ -7,11 +7,11 @@ import { TicketStatus, TicketCategory } from '@helpdesk/core';
 const router = express.Router();
 
 const inboundEmailSchema = z.object({
-  from: z.string().email('Invalid sender email format.'),
-  name: z.string().optional(),
-  subject: z.string().min(1, 'Subject cannot be empty.'),
-  body: z.string().min(1, 'Body cannot be empty.'),
-  bodyHtml: z.string().optional(),
+  from: z.string().email('Invalid sender email format.').max(255, 'Email cannot exceed 255 characters.'),
+  name: z.string().max(255, 'Name cannot exceed 255 characters.').optional(),
+  subject: z.string().min(1, 'Subject cannot be empty.').max(255, 'Subject cannot exceed 255 characters.'),
+  body: z.string().min(1, 'Body cannot be empty.').max(1000, 'Body cannot exceed 50,000 characters.'),
+  bodyHtml: z.string().max(3000, 'HTML Body cannot exceed 100,000 characters.').optional(),
   category: z.nativeEnum(TicketCategory).optional(),
 });
 
@@ -20,7 +20,7 @@ router.post('/inbound-email', validateBody(inboundEmailSchema), async (req, res)
 
   // 1. Threading detection: Check if subject contains [Ticket #<Int>]
   const ticketIdMatch = subject.match(/\[Ticket #(\d+)\]/);
-  
+
   if (ticketIdMatch) {
     const ticketId = parseInt(ticketIdMatch[1], 10);
     const existingTicket = await prisma.ticket.findUnique({
@@ -56,22 +56,22 @@ router.post('/inbound-email', validateBody(inboundEmailSchema), async (req, res)
     }
   }
 
-const categoryMap: Record<string, 'GENERAL' | 'TECHNICAL' | 'REFUND'> = {
-  'General Question': 'GENERAL',
-  'Technical Question': 'TECHNICAL',
-  'Refund Request': 'REFUND',
-};
+  const categoryMap: Record<string, 'GENERAL' | 'TECHNICAL' | 'REFUND'> = {
+    'General Question': 'GENERAL',
+    'Technical Question': 'TECHNICAL',
+    'Refund Request': 'REFUND',
+  };
 
-// 2. Create new Ticket if no thread matched
-const newTicket = await prisma.ticket.create({
-  data: {
-    subject: subject,
-    body: body,
-    bodyHtml: bodyHtml || null,
-    senderEmail: from.toLowerCase(),
-    senderName: name || null,
-    status: TicketStatus.OPEN,
-    category: category ? (categoryMap[category] || null) : null,
+  // 2. Create new Ticket if no thread matched
+  const newTicket = await prisma.ticket.create({
+    data: {
+      subject: subject,
+      body: body,
+      bodyHtml: bodyHtml || null,
+      senderEmail: from.toLowerCase(),
+      senderName: name || null,
+      status: TicketStatus.OPEN,
+      category: category ? (categoryMap[category] || null) : null,
       messages: {
         create: {
           sender: 'student',
