@@ -134,6 +134,21 @@ router.get('/assignees', requireSession, async (req, res, next) => {
   }
 });
 
+// GET dashboard metrics
+router.get('/dashboard', requireSession, async (req, res, next) => {
+  try {
+    const result = await prisma.$queryRaw<[{ get_dashboard_stats: any }]>`SELECT get_dashboard_stats()`;
+    
+    if (result && result[0]) {
+      return res.json(result[0].get_dashboard_stats);
+    }
+    
+    return res.status(500).json({ error: 'Failed to retrieve dashboard metrics' });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // Assign ticket to an agent/admin
 router.patch('/:id/assign', requireSession, async (req, res, next) => {
   try {

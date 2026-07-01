@@ -157,6 +157,30 @@ async function main() {
     agentId = existingAgent.id;
   }
 
+  // Check if AI Agent already exists
+  let aiAgentId = '';
+  const aiAgentEmail = 'ai@helpdesk.system';
+  const existingAiAgent = await prisma.user.findUnique({
+    where: { email: aiAgentEmail },
+  });
+
+  if (!existingAiAgent) {
+    console.log(`Creating AI Agent user: ${aiAgentEmail}`);
+    const result = await auth.api.signUpEmail({
+      body: {
+        email: aiAgentEmail,
+        password: 'password123',
+        name: 'AI Assistant',
+        role: 'agent',
+      },
+    });
+    console.log('AI Agent user seeded successfully:', result.user);
+    aiAgentId = result.user.id;
+  } else {
+    console.log(`AI Agent user with email ${aiAgentEmail} already exists. Skipping.`);
+    aiAgentId = existingAiAgent.id;
+  }
+
   // Clear existing tickets and messages
   console.log('Cleaning existing tickets and messages...');
   await prisma.message.deleteMany();
@@ -179,6 +203,13 @@ async function main() {
     // Spread createdAt timestamps over the last 25 days (one ticket every 6 hours)
     const createdAt = new Date(Date.now() - i * 6 * 60 * 60 * 1000);
 
+    // Simulate realistic resolution/closure time (between 30 minutes and 36 hours)
+    let updatedAt = createdAt;
+    if (status === 'resolved' || status === 'closed') {
+      const randomDurationMs = (30 + Math.random() * (36 * 60 - 30)) * 60 * 1000;
+      updatedAt = new Date(createdAt.getTime() + randomDurationMs);
+    }
+
     // Assign some tickets
     const assignedToId = (i % 4 === 0) ? agentId : (i % 10 === 0) ? adminId : null;
 
@@ -191,7 +222,7 @@ async function main() {
       status,
       category: template.category,
       createdAt,
-      updatedAt: createdAt,
+      updatedAt,
       assignedToId,
     };
   });
@@ -213,6 +244,106 @@ async function main() {
   await prisma.message.createMany({
     data: messagesToCreate,
   });
+
+  console.log('Creating database stored function for dashboard...');
+  const sqlFunction = `
+    CREATE OR REPLACE FUNCTION get_dashboard_stats()
+    RETURNS json AS $$
+    DECLARE
+        v_total_tickets integer;
+        v_open_tickets integer;
+        v_ai_resolved_tickets integer;
+        v_total_resolved integer;
+        v_pct_resolved_by_ai integer;
+        v_avg_resolution_time_minutes integer;
+        v_avg_resolution_time_formatted text;
+        v_category_general integer;
+        v_category_technical integer;
+        v_category_refund integer;
+        v_recent_tickets json;
+    BEGIN
+        -- 1. Total Tickets
+        SELECT COUNT(*) INTO v_total_tickets FROM ticket;
+
+        -- 2. Open Tickets
+        SELECT COUNT(*) INTO v_open_tickets FROM ticket WHERE status = 'open';
+
+        -- 3. AI Resolved Tickets
+        SELECT COUNT(DISTINCT t.id) INTO v_ai_resolved_tickets 
+        FROM ticket t
+        JOIN message m ON m."ticketId" = t.id
+        WHERE t.status = 'resolved' AND m."senderEmail" = 'ai@helpdesk.system';
+
+        -- 4. Total Resolved
+        SELECT COUNT(*) INTO v_total_resolved FROM ticket WHERE status = 'resolved';
+
+        -- 5. % Resolved by AI
+        IF v_total_resolved > 0 THEN
+            v_pct_resolved_by_ai := ROUND((v_ai_resolved_tickets::float / v_total_resolved::float) * 100);
+        ELSE
+            v_pct_resolved_by_ai := 0;
+        END IF;
+
+        -- 6. Avg Resolution Time in minutes
+        SELECT COALESCE(ROUND(AVG(EXTRACT(EPOCH FROM (t."updatedAt" - t."createdAt")) / 60)), 0)
+        INTO v_avg_resolution_time_minutes
+        FROM ticket t
+        WHERE t.status = 'resolved';
+
+        -- Format avg resolution time
+        IF v_total_resolved > 0 THEN
+            IF v_avg_resolution_time_minutes < 60 THEN
+                v_avg_resolution_time_formatted := v_avg_resolution_time_minutes || 'm';
+            ELSE
+                DECLARE
+                    v_hours integer := v_avg_resolution_time_minutes / 60;
+                    v_mins integer := v_avg_resolution_time_minutes % 60;
+                BEGIN
+                    IF v_mins > 0 THEN
+                        v_avg_resolution_time_formatted := v_hours || 'h ' || v_mins || 'm';
+                    ELSE
+                        v_avg_resolution_time_formatted := v_hours || 'h';
+                    END IF;
+                END;
+            END IF;
+        ELSE
+            v_avg_resolution_time_formatted := 'N/A';
+        END IF;
+
+        -- 7. Categories
+        SELECT COUNT(*) INTO v_category_general FROM ticket WHERE category = 'General Question';
+        SELECT COUNT(*) INTO v_category_technical FROM ticket WHERE category = 'Technical Question';
+        SELECT COUNT(*) INTO v_category_refund FROM ticket WHERE category = 'Refund Request';
+
+        -- 8. Recent 5 tickets
+        SELECT json_agg(t_recent) INTO v_recent_tickets FROM (
+            SELECT t.id, t.subject, t.status, t.category, t."senderName", t."senderEmail", t."createdAt",
+                   (SELECT json_build_object('name', u.name, 'email', u.email)
+                    FROM "user" u WHERE u.id = t."assignedToId") AS "assignedTo"
+            FROM ticket t
+            ORDER BY t."createdAt" DESC
+            LIMIT 5
+        ) t_recent;
+
+        -- Return JSON result
+        RETURN json_build_object(
+            'totalTickets', v_total_tickets,
+            'openTickets', v_open_tickets,
+            'aiResolvedCount', v_ai_resolved_tickets,
+            'pctResolvedByAi', v_pct_resolved_by_ai,
+            'avgResolutionTimeFormatted', v_avg_resolution_time_formatted,
+            'categories', json_build_object(
+                'GENERAL', v_category_general,
+                'TECHNICAL', v_category_technical,
+                'REFUND', v_category_refund
+            ),
+            'recentTickets', COALESCE(v_recent_tickets, '[]'::json)
+        );
+    END;
+    $$ LANGUAGE plpgsql;
+  `;
+  await prisma.$executeRawUnsafe(sqlFunction);
+  console.log('Database stored function registered successfully.');
 
   console.log('100 diversified tickets seeded successfully.');
 }

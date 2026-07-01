@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
 
 const TicketStatus = {
+  NEW: 'new',
+  PROCESSING: 'processing',
   OPEN: 'open',
   RESOLVED: 'resolved',
   CLOSED: 'closed',
@@ -36,7 +38,7 @@ test.describe('Inbound Email Webhook to Ticketing API', () => {
     expect(typeof ticketId).toBe('number');
     // Verify category is null (optional and no default value)
     expect(createData.ticket.category).toBeNull();
-    expect(createData.ticket.status).toBe(TicketStatus.OPEN);
+    expect(createData.ticket.status).toBe(TicketStatus.NEW);
     expect(createData.ticket.senderEmail).toBe(studentEmail);
     expect(createData.ticket.senderName).toBe('Jane Student');
     expect(createData.ticket.body).toBe(emailBody);

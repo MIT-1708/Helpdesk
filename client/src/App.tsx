@@ -5,6 +5,7 @@ import Login from './pages/Login'
 import Users from './pages/Users'
 import Tickets from './pages/Tickets'
 import TicketDetails from './pages/TicketDetails'
+import Dashboard from './pages/Dashboard'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { UserRole } from '@helpdesk/core'
 
@@ -34,6 +35,14 @@ function Layout({ children }: { children: React.ReactNode }) {
         </Link>
 
         <div className="flex items-center gap-5">
+          {!isPending && user && (
+            <Link
+              to="/"
+              className="text-xs font-semibold text-muted-foreground hover:text-foreground transition-all px-3 py-1.5 rounded-lg hover:bg-muted/50"
+            >
+              Dashboard
+            </Link>
+          )}
           {!isPending && user && (
             <Link
               to="/tickets"
@@ -246,7 +255,7 @@ function App() {
               path="/"
               element={
                 <ProtectedRoute>
-                  <HomePage />
+                  <Dashboard />
                 </ProtectedRoute>
               }
             />

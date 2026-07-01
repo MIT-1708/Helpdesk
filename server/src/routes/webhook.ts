@@ -63,6 +63,11 @@ router.post('/inbound-email', validateBody(inboundEmailSchema), async (req, res)
     'Refund Request': 'REFUND',
   };
 
+  // Find the seeded AI agent
+  const aiAgent = await prisma.user.findUnique({
+    where: { email: 'ai@helpdesk.system' }
+  });
+
   // 2. Create new Ticket if no thread matched
   const newTicket = await prisma.ticket.create({
     data: {
@@ -72,6 +77,7 @@ router.post('/inbound-email', validateBody(inboundEmailSchema), async (req, res)
       senderEmail: from.toLowerCase(),
       senderName: name || null,
       status: TicketStatus.NEW,
+      assignedToId: aiAgent ? aiAgent.id : null,
       category: category ? (categoryMap[category] || null) : null,
       messages: {
         create: {

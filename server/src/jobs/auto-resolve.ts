@@ -144,7 +144,10 @@ or
       // 5b. AI could not resolve — set to open for human agents
       await prisma.ticket.update({
         where: { id: ticketId },
-        data: { status: TicketStatus.OPEN },
+        data: {
+          status: TicketStatus.OPEN,
+          assignedToId: null,
+        },
       });
 
       console.log(`[Auto-Resolve] Ticket #${ticketId} requires human attention. Set to open.`);
@@ -156,7 +159,10 @@ or
     try {
       await prisma.ticket.update({
         where: { id: ticketId },
-        data: { status: TicketStatus.OPEN },
+        data: {
+          status: TicketStatus.OPEN,
+          assignedToId: null,
+        },
       });
     } catch (updateError) {
       console.error(`[Auto-Resolve] Failed to set ticket #${ticketId} to open after error:`, updateError);
