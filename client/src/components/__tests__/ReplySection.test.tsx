@@ -34,6 +34,7 @@ const mockTicket: Ticket = {
       senderEmail: 'customer@example.com',
       senderType: 'customer',
       body: 'Initial ticket body description.',
+      bodyHtml: null,
       createdAt: '2026-06-30T12:00:00.000Z',
     },
   ],
@@ -49,6 +50,7 @@ const mockTicketWithReplies: Ticket = {
       senderEmail: 'customer@example.com',
       senderType: 'customer',
       body: 'Customer reply follow up.',
+      bodyHtml: null,
       createdAt: '2026-06-30T12:05:00.000Z',
     },
     {
@@ -57,6 +59,7 @@ const mockTicketWithReplies: Ticket = {
       senderEmail: 'agent@example.com',
       senderType: 'agent',
       body: 'Agent reply response.',
+      bodyHtml: null,
       createdAt: '2026-06-30T12:10:00.000Z',
     },
   ],
@@ -115,6 +118,7 @@ describe('ReplySection Component', () => {
         senderEmail: 'agent@example.com',
         senderType: 'agent',
         body: 'New reply submitted.',
+        bodyHtml: null,
         createdAt: '2026-06-30T12:15:00.000Z',
       },
     });
