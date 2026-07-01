@@ -30,6 +30,7 @@ export default function TicketDetails() {
   const [assignees, setAssignees] = useState<{ id: string; name: string; email: string; role: string }[]>([]);
   const [loadingAssignees, setLoadingAssignees] = useState(false);
   const [updatingAssignee, setUpdatingAssignee] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>('none');
 
   const { data: ticket, isLoading, error } = useQuery<Ticket>({
     queryKey: ['ticket', id],
@@ -37,6 +38,13 @@ export default function TicketDetails() {
     enabled: !!id,
     placeholderData: keepPreviousData,
   });
+
+  // Sync local category state whenever the ticket data loads/changes
+  const [syncedTicketId, setSyncedTicketId] = useState<number | null>(null);
+  if (ticket && ticket.id !== syncedTicketId) {
+    setSelectedCategory(ticket.category || 'none');
+    setSyncedTicketId(ticket.id);
+  }
 
   const fetchAssignees = async () => {
     setLoadingAssignees(true);
@@ -255,9 +263,10 @@ export default function TicketDetails() {
                   <span className="text-[9px] text-muted-foreground font-medium uppercase tracking-wider block">Category</span>
                   <select
                     data-testid="category-select"
-                    value={ticket.category || 'none'}
+                    value={selectedCategory}
                     onChange={(e) => {
                       const val = e.target.value;
+                      setSelectedCategory(val);
                       handleUpdateProperties({ category: val === 'none' ? null : val as TicketCategory });
                     }}
                     className="w-full h-8.5 bg-background/50 border border-border rounded-xl px-2 text-xs text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary cursor-pointer font-semibold"
