@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Calendar, Tag, Shield, Mail, User as UserIcon, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Calendar, Tag, Shield, Mail, User as UserIcon, AlertCircle, RefreshCw } from 'lucide-react';
 import axios from 'axios';
-import { useQuery, keepPreviousData } from '@tanstack/react-query';
+import { useQuery, keepPreviousData, useQueryClient } from '@tanstack/react-query';
 import { TicketStatus, TicketCategory } from '@helpdesk/core';
+import { Button } from '@/components/ui/button';
 
 interface Message {
   id: string;
@@ -43,6 +45,12 @@ const fetchTicketDetails = async (id: string): Promise<Ticket> => {
 
 export default function TicketDetails() {
   const { id } = useParams<{ id: string }>();
+  const queryClient = useQueryClient();
+
+  const [isEditingAssignee, setIsEditingAssignee] = useState(false);
+  const [assignees, setAssignees] = useState<{ id: string; name: string; email: string; role: string }[]>([]);
+  const [loadingAssignees, setLoadingAssignees] = useState(false);
+  const [updatingAssignee, setUpdatingAssignee] = useState(false);
 
   const { data: ticket, isLoading, error } = useQuery<Ticket>({
     queryKey: ['ticket', id],
@@ -50,6 +58,42 @@ export default function TicketDetails() {
     enabled: !!id,
     placeholderData: keepPreviousData,
   });
+
+  const fetchAssignees = async () => {
+    setLoadingAssignees(true);
+    try {
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const response = await axios.get(`${baseUrl}/api/tickets/assignees`, {
+        withCredentials: true,
+      });
+      setAssignees(response.data);
+    } catch (err) {
+      console.error('Failed to fetch assignees:', err);
+    } finally {
+      setLoadingAssignees(false);
+    }
+  };
+
+  const handleAssign = async (agentId: string | null) => {
+    setUpdatingAssignee(true);
+    try {
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      await axios.patch(
+        `${baseUrl}/api/tickets/${ticket?.id}/assign`,
+        { agentId },
+        { withCredentials: true }
+      );
+      
+      // Invalidate queries to fetch updated ticket details
+      queryClient.invalidateQueries({ queryKey: ['ticket', id] });
+      setIsEditingAssignee(false);
+    } catch (err) {
+      console.error('Failed to update assignee:', err);
+      alert('Failed to update ticket assignment. Please try again.');
+    } finally {
+      setUpdatingAssignee(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -207,12 +251,12 @@ export default function TicketDetails() {
               </h3>
               
               <div className="space-y-3 text-xs">
-                <div className="space-y-0.5">
+                <div className="space-y-0.5 text-left">
                   <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Name</span>
                   <p className="font-semibold text-foreground">{ticket.senderName || 'Anonymous'}</p>
                 </div>
                 
-                <div className="space-y-0.5">
+                <div className="space-y-0.5 text-left">
                   <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Email</span>
                   <p className="font-mono text-foreground flex items-center gap-1.5 truncate">
                     <Mail className="h-3 w-3 shrink-0 text-muted-foreground" />
@@ -224,19 +268,89 @@ export default function TicketDetails() {
 
             {/* Assignment Details Card */}
             <div className="bg-card/40 backdrop-blur-sm border border-border/80 p-5 rounded-2xl shadow-sm space-y-4">
-              <h3 className="text-sm font-bold text-foreground flex items-center gap-2 border-b border-border/50 pb-2">
-                <Shield className="h-4 w-4 text-primary" />
-                Assignment
-              </h3>
+              <div className="flex items-center justify-between border-b border-border/50 pb-2">
+                <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                  <Shield className="h-4 w-4 text-primary" />
+                  Assignment
+                </h3>
+                
+                {!isEditingAssignee && !updatingAssignee && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        setIsEditingAssignee(true);
+                        if (assignees.length === 0) fetchAssignees();
+                      }}
+                      className="text-[10px] font-bold text-primary hover:underline cursor-pointer"
+                    >
+                      {ticket.assignedTo ? 'Change' : 'Assign'}
+                    </button>
+                    {ticket.assignedTo && (
+                      <>
+                        <span className="text-[9px] text-muted-foreground">•</span>
+                        <button
+                          onClick={() => handleAssign(null)}
+                          className="text-[10px] font-bold text-destructive hover:underline cursor-pointer"
+                        >
+                          Unassign
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
               
               <div className="space-y-3 text-xs">
-                {ticket.assignedTo ? (
+                {isEditingAssignee ? (
+                  <div className="space-y-3 text-left">
+                    <div className="space-y-1">
+                      <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Select Agent</span>
+                      {loadingAssignees ? (
+                        <div className="h-9 w-full bg-muted rounded-xl animate-pulse" />
+                      ) : (
+                        <select
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            handleAssign(val === 'unassigned' ? null : val);
+                          }}
+                          defaultValue={ticket.assignedToId || 'unassigned'}
+                          className="w-full h-9 bg-background/50 border border-border rounded-xl px-3 text-xs text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary cursor-pointer"
+                          disabled={updatingAssignee}
+                        >
+                          <option value="unassigned">Unassigned</option>
+                          {assignees.map((agent) => (
+                            <option key={agent.id} value={agent.id}>
+                              {agent.name} ({agent.role})
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsEditingAssignee(false)}
+                        className="h-7 px-3 text-[10px] rounded-lg cursor-pointer"
+                        disabled={updatingAssignee}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : updatingAssignee ? (
+                  <div className="text-center py-4 text-muted-foreground text-xs font-semibold animate-pulse flex items-center justify-center gap-2">
+                    <RefreshCw className="h-3.5 w-3.5 animate-spin text-primary" />
+                    <span>Updating assignment...</span>
+                  </div>
+                ) : ticket.assignedTo ? (
                   <>
-                    <div className="space-y-0.5">
+                    <div className="space-y-0.5 text-left">
                       <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Agent</span>
                       <p className="font-semibold text-foreground">{ticket.assignedTo.name}</p>
                     </div>
-                    <div className="space-y-0.5">
+                    <div className="space-y-0.5 text-left">
                       <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Email</span>
                       <p className="font-mono text-foreground truncate">{ticket.assignedTo.email}</p>
                     </div>

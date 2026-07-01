@@ -274,6 +274,14 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/tickets/:id"
+              element={
+                <ProtectedRoute>
+                  <TicketDetails />
+                </ProtectedRoute>
+              }
+            />
             {/* Fallback route */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

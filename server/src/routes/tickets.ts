@@ -106,6 +106,78 @@ router.get('/', requireSession, async (req, res, next) => {
   }
 });
 
+// Fetch all assignable agents/admins
+router.get('/assignees', requireSession, async (req, res, next) => {
+  try {
+    const assignees = await prisma.user.findMany({
+      where: {
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+      },
+      orderBy: {
+        name: 'asc',
+      },
+    });
+    return res.json(assignees);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Assign ticket to an agent/admin
+router.patch('/:id/assign', requireSession, async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: 'Invalid ticket ID format.' });
+    }
+
+    let { agentId } = req.body;
+    if (agentId === '') {
+      agentId = null;
+    }
+
+    if (agentId !== null && typeof agentId !== 'string') {
+      return res.status(400).json({ error: 'Invalid agentId format. Must be a string or null.' });
+    }
+
+    if (agentId) {
+      const agent = await prisma.user.findUnique({
+        where: { id: agentId },
+      });
+      if (!agent || agent.deletedAt !== null) {
+        return res.status(404).json({ error: 'Agent not found or is inactive.' });
+      }
+    }
+
+    const updatedTicket = await prisma.ticket.update({
+      where: { id },
+      data: {
+        assignedToId: agentId,
+      },
+      include: {
+        assignedTo: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+          },
+        },
+      },
+    });
+
+    return res.json(updatedTicket);
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.get('/:id', requireSession, async (req, res, next) => {
   try {
     const id = Number(req.params.id);
