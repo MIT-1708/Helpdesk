@@ -2,7 +2,7 @@ import { useState } from 'react';
 import axios from 'axios';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
-import type { Ticket, Message } from '@helpdesk/core';
+import type { Ticket } from '@helpdesk/core';
 import DOMPurify from 'dompurify';
 import { Sparkles, Loader2 } from 'lucide-react';
 

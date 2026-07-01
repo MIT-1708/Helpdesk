@@ -43,7 +43,7 @@ const mockTicket: Ticket = {
 const mockTicketWithReplies: Ticket = {
   ...mockTicket,
   messages: [
-    ...mockTicket.messages,
+    ...(mockTicket.messages ?? []),
     {
       id: 'msg-2',
       sender: 'customer@example.com',
@@ -145,5 +145,95 @@ describe('ReplySection Component', () => {
 
     // Textarea is cleared
     expect(textarea).toHaveValue('');
+  });
+
+  it('renders a Polish button', () => {
+    renderWithQueryClient(<ReplySection ticket={mockTicket} />);
+    const polishButton = screen.getByTestId('polish-button');
+    expect(polishButton).toBeInTheDocument();
+    expect(polishButton).toHaveTextContent(/polish/i);
+  });
+
+  it('disables Polish button when reply text is empty or only whitespace', () => {
+    renderWithQueryClient(<ReplySection ticket={mockTicket} />);
+    const polishButton = screen.getByTestId('polish-button');
+    const textarea = screen.getByPlaceholderText('Type your reply to the customer...');
+
+    expect(polishButton).toBeDisabled();
+
+    // typing spaces
+    fireEvent.change(textarea, { target: { value: '   ' } });
+    expect(polishButton).toBeDisabled();
+
+    // typing valid draft
+    fireEvent.change(textarea, { target: { value: 'draft' } });
+    expect(polishButton).toBeEnabled();
+  });
+
+  it('calls polish API and updates textarea with polished result on click', async () => {
+    vi.mocked(axios.post).mockResolvedValue({
+      data: {
+        polishedReply: 'This is a beautifully polished reply!',
+      },
+    });
+
+    renderWithQueryClient(<ReplySection ticket={mockTicket} />);
+    const polishButton = screen.getByTestId('polish-button');
+    const textarea = screen.getByPlaceholderText('Type your reply to the customer...');
+
+    fireEvent.change(textarea, { target: { value: 'rough draft' } });
+    expect(polishButton).toBeEnabled();
+
+    fireEvent.click(polishButton);
+
+    // Should show loading state
+    expect(screen.getByText(/polishing.../i)).toBeInTheDocument();
+    expect(polishButton).toBeDisabled();
+    expect(textarea).toBeDisabled();
+
+    await waitFor(() => {
+      expect(axios.post).toHaveBeenCalledWith(
+        expect.stringContaining('/api/tickets/1/messages/polish'),
+        {
+          draftReply: 'rough draft',
+          ticketBody: 'Initial ticket body description.',
+          customerName: 'Customer Name',
+        },
+        { withCredentials: true }
+      );
+    });
+
+    // Textarea updated
+    await waitFor(() => {
+      expect(textarea).toHaveValue('This is a beautifully polished reply!');
+    });
+    
+    // Polish button is back to enabled
+    expect(polishButton).toBeEnabled();
+    expect(textarea).toBeEnabled();
+  });
+
+  it('shows an alert when polish API fails', async () => {
+    const alertMock = vi.spyOn(window, 'alert').mockImplementation(() => {});
+    vi.mocked(axios.post).mockRejectedValue({
+      response: {
+        data: {
+          error: 'AI service failed',
+        },
+      },
+    });
+
+    renderWithQueryClient(<ReplySection ticket={mockTicket} />);
+    const polishButton = screen.getByTestId('polish-button');
+    const textarea = screen.getByPlaceholderText('Type your reply to the customer...');
+
+    fireEvent.change(textarea, { target: { value: 'rough draft' } });
+    fireEvent.click(polishButton);
+
+    await waitFor(() => {
+      expect(alertMock).toHaveBeenCalledWith('AI service failed');
+    });
+
+    alertMock.mockRestore();
   });
 });

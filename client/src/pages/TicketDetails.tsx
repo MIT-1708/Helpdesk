@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Calendar, Tag, Shield, User as UserIcon, AlertCircle, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Calendar, Tag, Shield, User as UserIcon, AlertCircle, RefreshCw, Loader2, Sparkles } from 'lucide-react';
 import axios from 'axios';
 import { useQuery, keepPreviousData, useQueryClient } from '@tanstack/react-query';
 import { TicketStatus, TicketCategory } from '@helpdesk/core';
-import type { Ticket, Message } from '@helpdesk/core';
+import type { Ticket } from '@helpdesk/core';
 import { Button } from '@/components/ui/button';
 import { ReplySection } from '../components/ReplySection';
 import DOMPurify from 'dompurify';
@@ -31,6 +31,28 @@ export default function TicketDetails() {
   const [loadingAssignees, setLoadingAssignees] = useState(false);
   const [updatingAssignee, setUpdatingAssignee] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('none');
+
+  const [summary, setSummary] = useState<string | null>(null);
+  const [loadingSummary, setLoadingSummary] = useState(false);
+
+  const handleSummarize = async () => {
+    if (loadingSummary) return;
+    setLoadingSummary(true);
+    try {
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const response = await axios.post(
+        `${baseUrl}/api/tickets/${ticket?.id}/summarize`,
+        {},
+        { withCredentials: true }
+      );
+      setSummary(response.data.summary);
+    } catch (err: any) {
+      console.error('Failed to summarize conversation:', err);
+      alert(err.response?.data?.error || 'Failed to summarize conversation. Please try again.');
+    } finally {
+      setLoadingSummary(false);
+    }
+  };
 
   const { data: ticket, isLoading, error } = useQuery<Ticket>({
     queryKey: ['ticket', id],
@@ -200,30 +222,65 @@ export default function TicketDetails() {
         {/* Main Grid split: Balanced two-column layout */}
         <div className="grid gap-6 md:grid-cols-2">
           {/* Left Column: Description card only */}
-          <div className="space-y-6">
+          <div className="space-y-6 flex flex-col h-full">
             {/* Ticket body details */}
-            <div className="bg-card/30 backdrop-blur-sm border border-border/80 p-6 rounded-2xl shadow-sm space-y-4">
+            <div className="bg-card/30 backdrop-blur-sm border border-border/80 p-6 rounded-2xl shadow-sm space-y-4 flex flex-col flex-1 h-full">
               <h2 className="text-base font-bold text-foreground border-b border-border/50 pb-2">Description</h2>
               {ticket.bodyHtml ? (
                 <div
-                  className="text-sm text-foreground/90 leading-relaxed parsed-html"
+                  className="text-sm text-foreground/90 leading-relaxed parsed-html flex-grow"
                   dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(ticket.bodyHtml) }}
                 />
               ) : (
-                <div className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed">
+                <div className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed flex-grow">
                   {ticket.body}
                 </div>
               )}
-            </div>
 
-            {/* Reply Section */}
-            <ReplySection ticket={ticket} />
+              {/* AI Conversation Summary Section */}
+              <div className="pt-4 border-t border-border/50 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-muted-foreground">AI Conversation Summary</span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    data-testid="summarize-button"
+                    onClick={handleSummarize}
+                    disabled={loadingSummary}
+                    className="cursor-pointer text-xs gap-1.5 h-8 px-3 transition-all duration-200 hover:bg-primary/10 hover:text-primary hover:border-primary/30"
+                  >
+                    {loadingSummary ? (
+                      <>
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+                        {summary ? 'Regenerate Summary' : 'Summarize History'}
+                      </>
+                    )}
+                  </Button>
+                </div>
+
+                {summary && (
+                  <div className="p-4 rounded-xl bg-gradient-to-br from-primary/5 to-amber-500/5 border border-primary/15 text-xs text-foreground/90 leading-relaxed space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="font-semibold text-primary/80 flex items-center gap-1.5 pb-1 border-b border-primary/10">
+                      <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+                      Summary
+                    </div>
+                    <div className="whitespace-pre-wrap pl-1 font-sans">{summary}</div>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Right Column: Properties, Assignment, and Details dropdown lists */}
-          <div className="space-y-6">
+          <div className="space-y-6 flex flex-col h-full">
             {/* Unified Sidebar Card: Customer details, status/category properties, and assignment dropdowns */}
-            <div className="bg-card/40 backdrop-blur-sm border border-border/80 p-5 rounded-2xl shadow-sm space-y-4 text-left">
+            <div className="bg-card/40 backdrop-blur-sm border border-border/80 p-5 rounded-2xl shadow-sm space-y-4 text-left flex-1 h-full">
               {/* Customer Info Section */}
               <div className="space-y-2.5 pb-3 border-b border-border/50">
                 <h3 className="text-xs font-bold text-foreground flex items-center gap-2 uppercase tracking-wider">
@@ -379,6 +436,9 @@ export default function TicketDetails() {
             </div>
           </div>
         </div>
+
+        {/* Reply Section */}
+        <ReplySection ticket={ticket} />
       </div>
     </div>
   );

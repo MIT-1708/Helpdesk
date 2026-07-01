@@ -123,6 +123,11 @@ router.delete('/:id', async (req, res) => {
         where: { id },
         data: { deletedAt: new Date() },
     });
+    // Unassign all tickets previously assigned to this user
+    await prisma_js_1.default.ticket.updateMany({
+        where: { assignedToId: id },
+        data: { assignedToId: null },
+    });
     // Delete active sessions to force log out
     await prisma_js_1.default.session.deleteMany({
         where: { userId: id },

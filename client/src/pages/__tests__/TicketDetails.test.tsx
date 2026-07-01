@@ -266,4 +266,73 @@ describe('TicketDetails Component', () => {
       expect(screen.getByText('Network Error')).toBeInTheDocument();
     });
   });
+
+  it('renders the summarize button and displays summary on click', async () => {
+    vi.mocked(axios.get).mockResolvedValue({ data: mockTicketDetails });
+    vi.mocked(axios.post).mockResolvedValue({
+      data: {
+        summary: 'This is a concise summary of the ticket conversation history.',
+      },
+    });
+
+    renderComponent();
+
+    // Wait for the ticket details to load
+    await waitFor(() => {
+      expect(screen.getByText('Refund request for Course 101')).toBeInTheDocument();
+    });
+
+    // Check that the Summarize History button is rendered
+    const summarizeButton = screen.getByTestId('summarize-button');
+    expect(summarizeButton).toHaveTextContent(/Summarize History/i);
+
+    // Click the button
+    fireEvent.click(summarizeButton);
+
+    // Verify it updates to the loading state
+    expect(summarizeButton).toHaveTextContent(/Generating.../i);
+
+    // Verify the summary is eventually displayed
+    await waitFor(() => {
+      expect(screen.getByText('This is a concise summary of the ticket conversation history.')).toBeInTheDocument();
+    });
+
+    // Button text should change to "Regenerate Summary"
+    expect(summarizeButton).toHaveTextContent(/Regenerate Summary/i);
+
+    // Verify correct API call
+    expect(axios.post).toHaveBeenCalledWith(
+      expect.stringContaining('/api/tickets/1/summarize'),
+      {},
+      { withCredentials: true }
+    );
+  });
+
+  it('handles summarize API failure and alerts the user', async () => {
+    vi.mocked(axios.get).mockResolvedValue({ data: mockTicketDetails });
+    vi.mocked(axios.post).mockRejectedValue({
+      response: {
+        data: {
+          error: 'AI service is currently down.',
+        },
+      },
+    });
+
+    const alertMock = vi.spyOn(window, 'alert').mockImplementation(() => {});
+
+    renderComponent();
+
+    await waitFor(() => {
+      expect(screen.getByText('Refund request for Course 101')).toBeInTheDocument();
+    });
+
+    const summarizeButton = screen.getByTestId('summarize-button');
+    fireEvent.click(summarizeButton);
+
+    await waitFor(() => {
+      expect(alertMock).toHaveBeenCalledWith('AI service is currently down.');
+    });
+
+    alertMock.mockRestore();
+  });
 });

@@ -9,7 +9,13 @@ const prisma_1 = require("better-auth/adapters/prisma");
 const api_1 = require("better-auth/api");
 const prisma_js_1 = __importDefault(require("./prisma.js"));
 exports.auth = (0, better_auth_1.betterAuth)({
-    trustedOrigins: [process.env.CLIENT_URL || "http://localhost:5173"],
+    trustedOrigins: [
+        process.env.CLIENT_URL,
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174"
+    ].filter(Boolean),
     database: (0, prisma_1.prismaAdapter)(prisma_js_1.default, {
         provider: "postgresql",
     }),

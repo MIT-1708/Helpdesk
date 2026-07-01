@@ -13,6 +13,7 @@ const auth_js_1 = require("./auth.js");
 const users_js_1 = __importDefault(require("./routes/users.js"));
 const inbound_js_1 = __importDefault(require("./routes/inbound.js"));
 const tickets_js_1 = __importDefault(require("./routes/tickets.js"));
+const replies_js_1 = __importDefault(require("./routes/replies.js"));
 // Validate environment variables first
 const env_validator_js_1 = require("./utils/env-validator.js");
 (0, env_validator_js_1.validateEnv)();
@@ -21,10 +22,13 @@ dotenv_1.default.config({ path: path_1.default.resolve(process.cwd(), envFile) }
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 5000;
 // Dynamic CORS configuration restricted to trusted origins only
-const allowedOrigins = [process.env.CLIENT_URL].filter(Boolean);
-if (allowedOrigins.length === 0) {
-    allowedOrigins.push('http://localhost:5173'); // Default fallback for local dev
-}
+const allowedOrigins = [
+    process.env.CLIENT_URL,
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'http://127.0.0.1:5173',
+    'http://127.0.0.1:5174'
+].filter(Boolean);
 app.use((0, cors_1.default)({
     origin: (origin, callback) => {
         if (!origin)
@@ -82,6 +86,7 @@ adminRouter.use('/users', users_js_1.default);
 app.use('/api/admin', adminRouter);
 app.use('/api/webhooks', inbound_js_1.default);
 app.use('/api/tickets', tickets_js_1.default);
+app.use('/api/tickets/:ticketId/messages', replies_js_1.default);
 // Health Check Endpoint (checks DB connectivity)
 // Note: We use local try/catch here because we want to return a custom unhealthy JSON payload.
 app.get('/api/health', async (req, res) => {

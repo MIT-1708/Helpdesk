@@ -23,10 +23,13 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Dynamic CORS configuration restricted to trusted origins only
-const allowedOrigins = [process.env.CLIENT_URL].filter(Boolean) as string[];
-if (allowedOrigins.length === 0) {
-  allowedOrigins.push('http://localhost:5173'); // Default fallback for local dev
-}
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:5174'
+].filter(Boolean) as string[];
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -135,3 +138,5 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 app.listen(PORT, () => {
   console.log(`[server] Server running on http://localhost:${PORT}`);
 });
+
+// Trigger watch reload to pick up the updated GROQ_API_KEY environment variable.
