@@ -71,7 +71,7 @@ router.post('/inbound-email', validateBody(inboundEmailSchema), async (req, res)
       bodyHtml: bodyHtml || null,
       senderEmail: from.toLowerCase(),
       senderName: name || null,
-      status: TicketStatus.OPEN,
+      status: TicketStatus.NEW,
       category: category ? (categoryMap[category] || null) : null,
       messages: {
         create: {
@@ -91,6 +91,9 @@ router.post('/inbound-email', validateBody(inboundEmailSchema), async (req, res)
   if (!category) {
     await boss.send('classify-ticket', { ticketId: newTicket.id });
   }
+
+  // Trigger background auto-resolve using the knowledge base
+  await boss.send('auto-resolve-ticket', { ticketId: newTicket.id });
 
   return res.json({
     message: 'New ticket created from inbound email successfully.',

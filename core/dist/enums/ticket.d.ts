@@ -1,4 +1,6 @@
 export declare enum TicketStatus {
+    NEW = "new",
+    PROCESSING = "processing",
     OPEN = "open",
     RESOLVED = "resolved",
     CLOSED = "closed"

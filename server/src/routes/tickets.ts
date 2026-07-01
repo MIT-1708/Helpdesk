@@ -51,6 +51,9 @@ router.get('/', requireSession, async (req, res, next) => {
 
     if (status) {
       where.status = status;
+    } else {
+      // By default, hide tickets still being processed by AI
+      where.status = { notIn: [TicketStatus.NEW, TicketStatus.PROCESSING] };
     }
 
     const categoryMap: Record<string, 'GENERAL' | 'TECHNICAL' | 'REFUND'> = {

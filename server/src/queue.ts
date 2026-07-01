@@ -2,6 +2,7 @@ import { PgBoss, Job } from 'pg-boss';
 import prisma from './prisma.js';
 import { createGroq } from '@ai-sdk/groq';
 import { generateText } from 'ai';
+import { handleAutoResolveJob } from './jobs/auto-resolve.js';
 
 // Initialize pg-boss with the database connection string
 const boss = new PgBoss(process.env.DATABASE_URL!);
@@ -84,12 +85,17 @@ export async function startQueue() {
   await boss.start();
   console.log('[Queue] PgBoss queue engine started.');
   
-  // Explicitly create queue to prevent missing queue warnings
+  // Explicitly create queues to prevent missing queue warnings
   await boss.createQueue('classify-ticket');
+  await boss.createQueue('auto-resolve-ticket');
   
-  // Register worker for 'classify-ticket'
+  // Register workers
   await boss.work('classify-ticket', handleClassifyTicketJob);
   console.log('[Queue] Worker registered for "classify-ticket" job.');
+
+  await boss.work('auto-resolve-ticket', handleAutoResolveJob);
+  console.log('[Queue] Worker registered for "auto-resolve-ticket" job.');
 }
 
 export { boss };
+

@@ -1,5 +1,7 @@
 export var TicketStatus;
 (function (TicketStatus) {
+    TicketStatus["NEW"] = "new";
+    TicketStatus["PROCESSING"] = "processing";
     TicketStatus["OPEN"] = "open";
     TicketStatus["RESOLVED"] = "resolved";
     TicketStatus["CLOSED"] = "closed";
