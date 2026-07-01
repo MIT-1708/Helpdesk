@@ -9,6 +9,7 @@ import { z } from 'zod';
 import usersRouter from './routes/users.js';
 import inboundRouter from './routes/inbound.js';
 import ticketsRouter from './routes/tickets.js';
+import repliesRouter from './routes/replies.js';
 
 // Validate environment variables first
 import { validateEnv } from './utils/env-validator.js';
@@ -97,6 +98,7 @@ adminRouter.use('/users', usersRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/webhooks', inboundRouter);
 app.use('/api/tickets', ticketsRouter);
+app.use('/api/tickets/:ticketId/messages', repliesRouter);
 
 // Health Check Endpoint (checks DB connectivity)
 // Note: We use local try/catch here because we want to return a custom unhealthy JSON payload.

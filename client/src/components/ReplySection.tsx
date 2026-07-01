@@ -1,0 +1,134 @@
+import { useState } from 'react';
+import axios from 'axios';
+import { useQueryClient } from '@tanstack/react-query';
+import { Button } from '@/components/ui/button';
+
+export interface Message {
+  id: string;
+  sender: string;
+  senderEmail: string;
+  senderType: 'agent' | 'customer';
+  body: string;
+  createdAt: string;
+}
+
+export interface Ticket {
+  id: number;
+  subject: string;
+  body: string;
+  bodyHtml: string | null;
+  status: string;
+  category: string | null;
+  senderEmail: string;
+  senderName: string | null;
+  assignedToId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  assignedTo: any;
+  messages: Message[];
+}
+
+interface ReplySectionProps {
+  ticket: Ticket;
+}
+
+export function ReplySection({ ticket }: ReplySectionProps) {
+  const queryClient = useQueryClient();
+  const [replyText, setReplyText] = useState('');
+  const [submittingReply, setSubmittingReply] = useState(false);
+
+  const handleSendReply = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!replyText.trim() || submittingReply) return;
+
+    setSubmittingReply(true);
+    try {
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      await axios.post(
+        `${baseUrl}/api/tickets/${ticket.id}/messages`,
+        { body: replyText.trim() },
+        { withCredentials: true }
+      );
+      setReplyText('');
+      queryClient.invalidateQueries({ queryKey: ['ticket', String(ticket.id)] });
+    } catch (err: any) {
+      console.error('Failed to send reply:', err);
+      alert(err.response?.data?.error || 'Failed to send reply. Please try again.');
+    } finally {
+      setSubmittingReply(false);
+    }
+  };
+
+  return (
+    <>
+      {/* Reply Thread */}
+      <div className="bg-card/30 backdrop-blur-sm border border-border/80 p-6 rounded-2xl shadow-sm space-y-4">
+        <h2 className="text-base font-bold text-foreground border-b border-border/50 pb-2">Reply Thread</h2>
+        {ticket.messages && ticket.messages.slice(1).length > 0 ? (
+          <div className="space-y-4 max-h-[400px] overflow-y-auto pr-1">
+            {ticket.messages.slice(1).map((msg) => {
+              const isAgent = msg.senderType === 'agent';
+              return (
+                <div
+                  key={msg.id}
+                  className={`flex flex-col space-y-1.5 max-w-[85%] ${
+                    isAgent ? 'ml-auto items-end' : 'mr-auto items-start'
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                    <span className="font-semibold text-foreground">
+                      {isAgent ? (msg.sender || 'Agent') : 'Customer'}
+                    </span>
+                    <span>•</span>
+                    <span className="font-mono">{msg.senderEmail}</span>
+                    <span>•</span>
+                    <span>{new Date(msg.createdAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</span>
+                  </div>
+                  <div
+                    className={`p-3 rounded-2xl text-xs whitespace-pre-wrap leading-relaxed border ${
+                      isAgent
+                        ? 'bg-primary/10 border-primary/20 text-foreground rounded-tr-none'
+                        : 'bg-muted/50 border-border text-foreground rounded-tl-none'
+                    }`}
+                  >
+                    {msg.body}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-center py-6 text-xs text-muted-foreground">
+            No replies yet. Use the form below to reply.
+          </div>
+        )}
+      </div>
+
+      {/* Reply Form */}
+      <div className="bg-card/30 backdrop-blur-sm border border-border/80 p-6 rounded-2xl shadow-sm space-y-4">
+        <h2 className="text-base font-bold text-foreground border-b border-border/50 pb-2">Send a Reply</h2>
+        <form onSubmit={handleSendReply} className="space-y-4">
+          <textarea
+            data-testid="reply-textarea"
+            value={replyText}
+            onChange={(e) => setReplyText(e.target.value)}
+            placeholder="Type your reply to the customer..."
+            className="w-full min-h-[100px] p-3 text-xs bg-background/50 border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-muted-foreground resize-y"
+            required
+            disabled={submittingReply}
+          />
+          <div className="flex justify-end">
+            <Button
+              type="submit"
+              data-testid="reply-submit-button"
+              disabled={submittingReply || !replyText.trim()}
+              className="cursor-pointer text-xs"
+            >
+              {submittingReply ? 'Sending...' : 'Submit Reply'}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </>
+  );
+}

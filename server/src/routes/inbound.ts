@@ -34,6 +34,7 @@ router.post('/inbound-email', validateBody(inboundEmailSchema), async (req, res)
           ticketId: existingTicket.id,
           sender: 'student',
           senderEmail: from.toLowerCase(),
+          senderType: 'customer',
           body: body,
         },
       });
@@ -75,6 +76,7 @@ const newTicket = await prisma.ticket.create({
         create: {
           sender: 'student',
           senderEmail: from.toLowerCase(),
+          senderType: 'customer',
           body: body,
         },
       },

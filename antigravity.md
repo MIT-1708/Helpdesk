@@ -108,7 +108,11 @@ This file serves as a memory/rules reference for the Antigravity agent when work
   - Located in [TicketDetails.test.tsx](file:///c:/Users/allle/OneDrive/Desktop/Helpdesk/client/src/pages/__tests__/TicketDetails.test.tsx).
   - Verifies ticket details layout, message thread lists, customer card, assignee cards, and API failures.
 
+### 10. Modular Architecture & Code Reusability
+- **Rule**: If some code is reusable (e.g., helper functions, middleware, schemas, or utilities), reuse it instead of duplicating it.
+- **Rule**: New features should be implemented in dedicated, decoupled modules rather than overloading existing controllers or router files (e.g., ticket replying logic should be placed in its own [replies.ts](file:///c:/Users/allle/OneDrive/Desktop/Helpdesk/server/src/routes/replies.ts) module rather than [tickets.ts](file:///c:/Users/allle/OneDrive/Desktop/Helpdesk/server/src/routes/tickets.ts)).
+
 ---
-*Last Updated: 2026-06-30 per user request to maintain project memory for Antigravity.*
+*Last Updated: 2026-07-01 per user request to maintain project memory for Antigravity.*
 
 

@@ -206,6 +206,7 @@ async function main() {
     ticketId: t.id,
     sender: 'student',
     senderEmail: t.senderEmail,
+    senderType: 'customer' as const,
     body: t.body,
   }));
 

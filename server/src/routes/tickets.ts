@@ -8,7 +8,7 @@ import { TicketStatus, TicketCategory } from '@helpdesk/core';
 const router = express.Router();
 
 // Middleware to verify session for both Admin and Agent
-const requireSession = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+export const requireSession = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
   try {
     const session = await auth.api.getSession({
       headers: fromNodeHeaders(req.headers),

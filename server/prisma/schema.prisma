@@ -90,17 +90,23 @@ model Ticket {
 }
 
 model Message {
-  id          String   @id @default(uuid())
+  id          String     @id @default(uuid())
   ticketId    Int
   sender      String
   senderEmail String
+  senderType  SenderType @default(customer)
   body        String
   aiDraft     String?
-  createdAt   DateTime @default(now())
-  ticket      Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  createdAt   DateTime   @default(now())
+  ticket      Ticket     @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
   @@index([ticketId])
   @@map("message")
+}
+
+enum SenderType {
+  agent
+  customer
 }
 
 enum Role {

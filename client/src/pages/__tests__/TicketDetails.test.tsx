@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, fireEvent } from '@testing-library/react';
 import axios from 'axios';
 import TicketDetails from '../TicketDetails';
 import { renderWithQueryClient } from '@/test/test-utils';
@@ -32,13 +32,15 @@ const mockTicketDetails = {
       id: 'msg-1',
       sender: 'student',
       senderEmail: 'student1@example.com',
+      senderType: 'customer' as const,
       body: 'I want a refund for the course.',
       createdAt: '2026-06-30T12:00:00.000Z',
     },
     {
       id: 'msg-2',
-      sender: 'agent',
+      sender: 'Agent User',
       senderEmail: 'agent@example.com',
+      senderType: 'agent' as const,
       body: 'Understood. We are looking into it.',
       createdAt: '2026-06-30T12:05:00.000Z',
     },
@@ -61,7 +63,7 @@ describe('TicketDetails Component', () => {
   });
 
   it('renders loading skeleton initially', async () => {
-    vi.mocked(axios.get).mockReturnValue(new Promise(() => {}));
+    vi.mocked(axios.get).mockReturnValue(new Promise(() => { }));
     const { container } = renderComponent();
     const skeletons = container.querySelectorAll('.animate-pulse');
     expect(skeletons.length).toBeGreaterThan(0);
@@ -79,7 +81,7 @@ describe('TicketDetails Component', () => {
 
     // Verify badges
     expect(screen.getByText(TicketStatus.OPEN)).toBeInTheDocument();
-    expect(screen.getByText(TicketCategory.REFUND)).toBeInTheDocument();
+    expect(screen.getAllByText(TicketCategory.REFUND)[0]).toBeInTheDocument();
 
     // Verify description body
     expect(screen.getAllByText('I want a refund for the course.')[0]).toBeInTheDocument();
@@ -94,7 +96,56 @@ describe('TicketDetails Component', () => {
 
     // Verify messages thread
     expect(screen.getByText('Understood. We are looking into it.')).toBeInTheDocument();
-    expect(screen.getByText('Support Agent')).toBeInTheDocument();
+    expect(screen.getAllByText('Agent User')[1]).toBeInTheDocument();
+  });
+
+  it('renders the reply thread and submits a new reply successfully', async () => {
+    vi.mocked(axios.get).mockResolvedValue({ data: mockTicketDetails });
+    vi.mocked(axios.post).mockResolvedValue({
+      data: {
+        id: 'msg-3',
+        sender: 'Agent User',
+        senderEmail: 'agent@example.com',
+        senderType: 'agent',
+        body: 'This is a new test reply.',
+        createdAt: '2026-06-30T12:10:00.000Z',
+      },
+    });
+
+    renderComponent();
+
+    // Verify reply thread header is rendered
+    await waitFor(() => {
+      expect(screen.getByText('Reply Thread')).toBeInTheDocument();
+    });
+
+    // Verify existing replies (msg-2 is subsequent, so it should render in the thread)
+    expect(screen.getByText('Understood. We are looking into it.')).toBeInTheDocument();
+    expect(screen.getAllByText('agent@example.com')[1]).toBeInTheDocument();
+
+    // Find the textarea and type a reply
+    const textarea = screen.getByPlaceholderText('Type your reply to the customer...');
+    expect(textarea).toBeInTheDocument();
+
+    // Type text using fireEvent
+
+    fireEvent.change(textarea, { target: { value: 'This is a new test reply.' } });
+
+    // Submit button should be enabled
+    const submitButton = screen.getByRole('button', { name: /submit reply/i });
+    expect(submitButton).toBeEnabled();
+
+    // Click submit
+    fireEvent.click(submitButton);
+
+    // Verify API call was made with correct params
+    await waitFor(() => {
+      expect(axios.post).toHaveBeenCalledWith(
+        expect.stringContaining('/api/tickets/1/messages'),
+        { body: 'This is a new test reply.' },
+        { withCredentials: true }
+      );
+    });
   });
 
   it('renders error state on API failure', async () => {

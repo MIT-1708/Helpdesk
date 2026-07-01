@@ -120,4 +120,38 @@ test.describe('Ticket Assignment E2E and API Verification', () => {
     // Verify header category badge displays "Technical Question"
     await expect(page.locator('span:has-text("Technical Question")').first()).toBeVisible();
   });
+
+  test('should allow Admin to reply to a ticket and see the reply in the thread', async ({ page }) => {
+    // Navigate to tickets page
+    await page.goto('/tickets');
+    await expect(page.locator('text=Tickets Directory')).toBeVisible();
+
+    // Click on the first ticket subject Link
+    const firstTicketLink = page.locator('table tbody tr').first().locator('a').first();
+    await firstTicketLink.click();
+
+    // Should be on details page
+    await expect(page).toHaveURL(/\/tickets\/\d+/);
+    await expect(page.locator('text=Customer Details')).toBeVisible();
+
+    // Find reply textarea and type a reply
+    const replyTextarea = page.locator('[data-testid="reply-textarea"]');
+    await expect(replyTextarea).toBeVisible();
+    
+    const uniqueReplyMessage = `This is a test reply generated at ${Date.now()}`;
+    await replyTextarea.fill(uniqueReplyMessage);
+
+    // Find submit button and submit the reply
+    const submitButton = page.locator('[data-testid="reply-submit-button"]');
+    await expect(submitButton).toBeVisible();
+    await submitButton.click();
+
+    // Verify the message has been posted and is visible in the thread
+    const replyThread = page.locator('text=Reply Thread');
+    await expect(replyThread).toBeVisible();
+    await expect(page.locator(`text=${uniqueReplyMessage}`)).toBeVisible();
+
+    // Verify the textarea is cleared
+    await expect(replyTextarea).toHaveValue('');
+  });
 });

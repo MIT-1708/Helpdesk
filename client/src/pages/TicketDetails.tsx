@@ -5,11 +5,13 @@ import axios from 'axios';
 import { useQuery, keepPreviousData, useQueryClient } from '@tanstack/react-query';
 import { TicketStatus, TicketCategory } from '@helpdesk/core';
 import { Button } from '@/components/ui/button';
+import { ReplySection } from '../components/ReplySection';
 
 interface Message {
   id: string;
-  sender: 'student' | 'agent';
+  sender: string;
   senderEmail: string;
+  senderType: 'agent' | 'customer';
   body: string;
   createdAt: string;
 }
@@ -123,6 +125,7 @@ export default function TicketDetails() {
     }
   };
 
+
   if (isLoading) {
     return (
       <div className="flex-1 p-6 md:p-10 bg-background relative min-h-[calc(100vh-140px)] overflow-hidden">
@@ -226,6 +229,9 @@ export default function TicketDetails() {
                 {ticket.body}
               </div>
             </div>
+
+            {/* Reply Section */}
+            <ReplySection ticket={ticket} />
           </div>
 
           {/* Right Column: Properties, Assignment, and Details dropdown lists */}
