@@ -178,6 +178,67 @@ router.patch('/:id/assign', requireSession, async (req, res, next) => {
   }
 });
 
+const updateTicketBodySchema = z.object({
+  status: z.nativeEnum(TicketStatus).optional(),
+  category: z.nativeEnum(TicketCategory).nullable().optional(),
+});
+
+// Update ticket status and/or category
+router.patch('/:id', requireSession, async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: 'Invalid ticket ID format.' });
+    }
+
+    const parsed = updateTicketBodySchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.issues[0]?.message || 'Invalid parameters.' });
+    }
+
+    const { status, category } = parsed.data;
+
+    const ticket = await prisma.ticket.findUnique({
+      where: { id },
+    });
+    if (!ticket) {
+      return res.status(404).json({ error: 'Ticket not found.' });
+    }
+
+    const data: any = {};
+    if (status !== undefined) {
+      data.status = status;
+    }
+    if (category !== undefined) {
+      const categoryMap: Record<string, 'GENERAL' | 'TECHNICAL' | 'REFUND'> = {
+        'General Question': 'GENERAL',
+        'Technical Question': 'TECHNICAL',
+        'Refund Request': 'REFUND',
+      };
+      data.category = category ? categoryMap[category] : null;
+    }
+
+    const updatedTicket = await prisma.ticket.update({
+      where: { id },
+      data,
+      include: {
+        assignedTo: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+          },
+        },
+      },
+    });
+
+    return res.json(updatedTicket);
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.get('/:id', requireSession, async (req, res, next) => {
   try {
     const id = Number(req.params.id);

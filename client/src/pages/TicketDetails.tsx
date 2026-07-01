@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Calendar, Tag, Shield, Mail, User as UserIcon, AlertCircle, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Calendar, Tag, Shield, User as UserIcon, AlertCircle, RefreshCw } from 'lucide-react';
 import axios from 'axios';
 import { useQuery, keepPreviousData, useQueryClient } from '@tanstack/react-query';
 import { TicketStatus, TicketCategory } from '@helpdesk/core';
@@ -41,6 +41,12 @@ const fetchTicketDetails = async (id: string): Promise<Ticket> => {
     withCredentials: true,
   });
   return response.data;
+};
+
+const categoryLabelMap: Record<string, string> = {
+  GENERAL: 'General Question',
+  TECHNICAL: 'Technical Question',
+  REFUND: 'Refund Request',
 };
 
 export default function TicketDetails() {
@@ -92,6 +98,28 @@ export default function TicketDetails() {
       alert('Failed to update ticket assignment. Please try again.');
     } finally {
       setUpdatingAssignee(false);
+    }
+  };
+
+  const [updatingProperties, setUpdatingProperties] = useState(false);
+
+  const handleUpdateProperties = async (updates: { status?: TicketStatus; category?: TicketCategory | null }) => {
+    setUpdatingProperties(true);
+    try {
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      await axios.patch(
+        `${baseUrl}/api/tickets/${ticket?.id}`,
+        updates,
+        { withCredentials: true }
+      );
+      
+      // Invalidate query to trigger refetch
+      queryClient.invalidateQueries({ queryKey: ['ticket', id] });
+    } catch (err) {
+      console.error('Failed to update ticket properties:', err);
+      alert('Failed to update ticket properties. Please try again.');
+    } finally {
+      setUpdatingProperties(false);
     }
   };
 
@@ -158,7 +186,7 @@ export default function TicketDetails() {
             <div className="flex items-center gap-2">
               {/* Status Badge */}
               <span
-                className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
+                className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold capitalize ${
                   ticket.status === TicketStatus.OPEN
                     ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
                     : ticket.status === TicketStatus.RESOLVED
@@ -173,7 +201,7 @@ export default function TicketDetails() {
               {ticket.category && (
                 <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-muted text-muted-foreground px-3 py-1 rounded-full border border-border">
                   <Tag className="h-3 w-3 text-primary/70" />
-                  <span>{ticket.category}</span>
+                  <span>{categoryLabelMap[ticket.category] || ticket.category}</span>
                 </span>
               )}
             </div>
@@ -187,10 +215,10 @@ export default function TicketDetails() {
           </div>
         </div>
 
-        {/* Main Grid split */}
-        <div className="grid gap-6 md:grid-cols-3">
-          {/* Main message & thread section */}
-          <div className="md:col-span-2 space-y-6">
+        {/* Main Grid split: Balanced two-column layout */}
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Left Column: Description card only */}
+          <div className="space-y-6">
             {/* Ticket body details */}
             <div className="bg-card/30 backdrop-blur-sm border border-border/80 p-6 rounded-2xl shadow-sm space-y-4">
               <h2 className="text-base font-bold text-foreground border-b border-border/50 pb-2">Description</h2>
@@ -198,168 +226,162 @@ export default function TicketDetails() {
                 {ticket.body}
               </div>
             </div>
-
-            {/* Conversation Flow */}
-            <div className="bg-card/30 backdrop-blur-sm border border-border/80 p-6 rounded-2xl shadow-sm space-y-4">
-              <h2 className="text-base font-bold text-foreground border-b border-border/50 pb-2">Conversation Thread</h2>
-              
-              <div className="space-y-4 pt-2">
-                {ticket.messages.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground text-xs">
-                    No messages in this thread.
-                  </div>
-                ) : (
-                  ticket.messages.map((message) => {
-                    const isAgent = message.sender === 'agent';
-                    return (
-                      <div
-                        key={message.id}
-                        className={`flex flex-col max-w-[85%] ${isAgent ? 'ml-auto items-end' : 'mr-auto items-start'}`}
-                      >
-                        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mb-1">
-                          <span className="font-semibold text-foreground/80">
-                            {isAgent ? 'Support Agent' : ticket.senderName || 'Student'}
-                          </span>
-                          <span>•</span>
-                          <span>{new Date(message.createdAt).toLocaleTimeString()}</span>
-                        </div>
-
-                        <div
-                          className={`rounded-2xl px-4 py-2.5 text-sm shadow-sm border leading-relaxed ${
-                            isAgent
-                              ? 'bg-primary text-primary-foreground border-primary/20 rounded-tr-none'
-                              : 'bg-muted/60 text-foreground border-border rounded-tl-none'
-                          }`}
-                        >
-                          {message.body}
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </div>
           </div>
 
-          {/* Sidebar details */}
+          {/* Right Column: Properties, Assignment, and Details dropdown lists */}
           <div className="space-y-6">
-            {/* Customer Information Card */}
-            <div className="bg-card/40 backdrop-blur-sm border border-border/80 p-5 rounded-2xl shadow-sm space-y-4">
-              <h3 className="text-sm font-bold text-foreground flex items-center gap-2 border-b border-border/50 pb-2">
-                <UserIcon className="h-4 w-4 text-primary" />
-                Customer Details
-              </h3>
-              
-              <div className="space-y-3 text-xs">
-                <div className="space-y-0.5 text-left">
-                  <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Name</span>
-                  <p className="font-semibold text-foreground">{ticket.senderName || 'Anonymous'}</p>
-                </div>
-                
-                <div className="space-y-0.5 text-left">
-                  <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Email</span>
-                  <p className="font-mono text-foreground flex items-center gap-1.5 truncate">
-                    <Mail className="h-3 w-3 shrink-0 text-muted-foreground" />
-                    <span className="truncate">{ticket.senderEmail}</span>
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Assignment Details Card */}
-            <div className="bg-card/40 backdrop-blur-sm border border-border/80 p-5 rounded-2xl shadow-sm space-y-4">
-              <div className="flex items-center justify-between border-b border-border/50 pb-2">
-                <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                  <Shield className="h-4 w-4 text-primary" />
-                  Assignment
+            {/* Unified Sidebar Card: Customer details, status/category properties, and assignment dropdowns */}
+            <div className="bg-card/40 backdrop-blur-sm border border-border/80 p-5 rounded-2xl shadow-sm space-y-4 text-left">
+              {/* Customer Info Section */}
+              <div className="space-y-2.5 pb-3 border-b border-border/50">
+                <h3 className="text-xs font-bold text-foreground flex items-center gap-2 uppercase tracking-wider">
+                  <UserIcon className="h-3.5 w-3.5 text-primary" />
+                  Customer Details
                 </h3>
-                
-                {!isEditingAssignee && !updatingAssignee && (
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => {
-                        setIsEditingAssignee(true);
-                        if (assignees.length === 0) fetchAssignees();
-                      }}
-                      className="text-[10px] font-bold text-primary hover:underline cursor-pointer"
-                    >
-                      {ticket.assignedTo ? 'Change' : 'Assign'}
-                    </button>
-                    {ticket.assignedTo && (
-                      <>
-                        <span className="text-[9px] text-muted-foreground">•</span>
-                        <button
-                          onClick={() => handleAssign(null)}
-                          className="text-[10px] font-bold text-destructive hover:underline cursor-pointer"
-                        >
-                          Unassign
-                        </button>
-                      </>
-                    )}
+                <div className="grid grid-cols-2 gap-4 text-xs">
+                  <div className="space-y-0.5">
+                    <span className="text-[9px] text-muted-foreground font-medium uppercase tracking-wider block">Name</span>
+                    <span className="font-semibold text-foreground truncate block">{ticket.senderName || 'Anonymous'}</span>
                   </div>
-                )}
+                  <div className="space-y-0.5">
+                    <span className="text-[9px] text-muted-foreground font-medium uppercase tracking-wider block">Email</span>
+                    <span className="font-mono text-foreground truncate block" title={ticket.senderEmail}>{ticket.senderEmail}</span>
+                  </div>
+                </div>
               </div>
-              
-              <div className="space-y-3 text-xs">
-                {isEditingAssignee ? (
-                  <div className="space-y-3 text-left">
-                    <div className="space-y-1">
-                      <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Select Agent</span>
-                      {loadingAssignees ? (
-                        <div className="h-9 w-full bg-muted rounded-xl animate-pulse" />
-                      ) : (
-                        <select
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            handleAssign(val === 'unassigned' ? null : val);
-                          }}
-                          defaultValue={ticket.assignedToId || 'unassigned'}
-                          className="w-full h-9 bg-background/50 border border-border rounded-xl px-3 text-xs text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary cursor-pointer"
-                          disabled={updatingAssignee}
-                        >
-                          <option value="unassigned">Unassigned</option>
-                          {assignees.map((agent) => (
-                            <option key={agent.id} value={agent.id}>
-                              {agent.name} ({agent.role})
-                            </option>
-                          ))}
-                        </select>
+
+              {/* Status and Category Dropdowns Section */}
+              <div className="grid grid-cols-2 gap-4 pb-3 border-b border-border/50">
+                <div className="space-y-1">
+                  <span className="text-[9px] text-muted-foreground font-medium uppercase tracking-wider block">Status</span>
+                  <select
+                    data-testid="status-select"
+                    value={ticket.status}
+                    onChange={(e) => handleUpdateProperties({ status: e.target.value as TicketStatus })}
+                    className="w-full h-8.5 bg-background/50 border border-border rounded-xl px-2 text-xs text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary cursor-pointer font-semibold capitalize"
+                    disabled={updatingProperties}
+                  >
+                    <option value={TicketStatus.OPEN}>Open</option>
+                    <option value={TicketStatus.RESOLVED}>Resolved</option>
+                    <option value={TicketStatus.CLOSED}>Closed</option>
+                  </select>
+                </div>
+                
+                <div className="space-y-1">
+                  <span className="text-[9px] text-muted-foreground font-medium uppercase tracking-wider block">Category</span>
+                  <select
+                    data-testid="category-select"
+                    value={ticket.category || 'none'}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      handleUpdateProperties({ category: val === 'none' ? null : val as TicketCategory });
+                    }}
+                    className="w-full h-8.5 bg-background/50 border border-border rounded-xl px-2 text-xs text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary cursor-pointer font-semibold"
+                    disabled={updatingProperties}
+                  >
+                    <option value="none">Uncategorized</option>
+                    <option value={TicketCategory.GENERAL}>General Question</option>
+                    <option value={TicketCategory.TECHNICAL}>Technical Question</option>
+                    <option value={TicketCategory.REFUND}>Refund Request</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Assignment Section */}
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-bold text-foreground flex items-center gap-2 uppercase tracking-wider">
+                    <Shield className="h-3.5 w-3.5 text-primary" />
+                    Assignment
+                  </h3>
+                  
+                  {!isEditingAssignee && !updatingAssignee && (
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => {
+                          setIsEditingAssignee(true);
+                          if (assignees.length === 0) fetchAssignees();
+                        }}
+                        className="text-[9px] font-bold text-primary hover:underline cursor-pointer"
+                      >
+                        {ticket.assignedTo ? 'Change' : 'Assign'}
+                      </button>
+                      {ticket.assignedTo && (
+                        <>
+                          <span className="text-[8px] text-muted-foreground">•</span>
+                          <button
+                            onClick={() => handleAssign(null)}
+                            className="text-[9px] font-bold text-destructive hover:underline cursor-pointer"
+                          >
+                            Unassign
+                          </button>
+                        </>
                       )}
                     </div>
-                    
-                    <div className="flex items-center justify-end gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setIsEditingAssignee(false)}
-                        className="h-7 px-3 text-[10px] rounded-lg cursor-pointer"
-                        disabled={updatingAssignee}
-                      >
-                        Cancel
-                      </Button>
+                  )}
+                </div>
+
+                <div className="text-xs">
+                  {isEditingAssignee ? (
+                    <div className="space-y-2">
+                      <div className="space-y-1">
+                        {loadingAssignees ? (
+                          <div className="h-8.5 w-full bg-muted rounded-xl animate-pulse" />
+                        ) : (
+                          <select
+                            data-testid="assignee-select"
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              handleAssign(val === 'unassigned' ? null : val);
+                            }}
+                            defaultValue={ticket.assignedToId || 'unassigned'}
+                            className="w-full h-8.5 bg-background/50 border border-border rounded-xl px-2 text-xs text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary cursor-pointer"
+                            disabled={updatingAssignee}
+                          >
+                            <option value="unassigned">Unassigned</option>
+                            {assignees.map((agent) => (
+                              <option key={agent.id} value={agent.id}>
+                                {agent.name} ({agent.role})
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center justify-end">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setIsEditingAssignee(false)}
+                          className="h-6.5 px-2.5 text-[9px] rounded-lg cursor-pointer"
+                          disabled={updatingAssignee}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                ) : updatingAssignee ? (
-                  <div className="text-center py-4 text-muted-foreground text-xs font-semibold animate-pulse flex items-center justify-center gap-2">
-                    <RefreshCw className="h-3.5 w-3.5 animate-spin text-primary" />
-                    <span>Updating assignment...</span>
-                  </div>
-                ) : ticket.assignedTo ? (
-                  <>
-                    <div className="space-y-0.5 text-left">
-                      <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Agent</span>
-                      <p className="font-semibold text-foreground">{ticket.assignedTo.name}</p>
+                  ) : updatingAssignee ? (
+                    <div className="text-center py-1 text-muted-foreground text-[10px] font-semibold animate-pulse flex items-center justify-center gap-1.5">
+                      <RefreshCw className="h-3 w-3 animate-spin text-primary" />
+                      <span>Updating...</span>
                     </div>
-                    <div className="space-y-0.5 text-left">
-                      <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Email</span>
-                      <p className="font-mono text-foreground truncate">{ticket.assignedTo.email}</p>
+                  ) : ticket.assignedTo ? (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-0.5">
+                        <span className="text-[9px] text-muted-foreground font-medium uppercase tracking-wider block">Agent</span>
+                        <span className="font-semibold text-foreground truncate block">{ticket.assignedTo.name}</span>
+                      </div>
+                      <div className="space-y-0.5">
+                        <span className="text-[9px] text-muted-foreground font-medium uppercase tracking-wider block">Email</span>
+                        <span className="font-mono text-foreground truncate block" title={ticket.assignedTo.email}>{ticket.assignedTo.email}</span>
+                      </div>
                     </div>
-                  </>
-                ) : (
-                  <div className="text-center py-4 bg-muted/40 rounded-xl border border-border/50 text-muted-foreground text-xs font-semibold">
-                    Unassigned
-                  </div>
-                )}
+                  ) : (
+                    <div className="text-center py-2 bg-muted/40 rounded-xl border border-border/50 text-muted-foreground text-[10px] font-semibold">
+                      Unassigned
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>

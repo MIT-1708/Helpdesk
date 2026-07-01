@@ -164,6 +164,60 @@ router.patch('/:id/assign', requireSession, async (req, res, next) => {
         next(error);
     }
 });
+const updateTicketBodySchema = zod_1.z.object({
+    status: zod_1.z.nativeEnum(core_1.TicketStatus).optional(),
+    category: zod_1.z.nativeEnum(core_1.TicketCategory).nullable().optional(),
+});
+// Update ticket status and/or category
+router.patch('/:id', requireSession, async (req, res, next) => {
+    try {
+        const id = Number(req.params.id);
+        if (isNaN(id)) {
+            return res.status(400).json({ error: 'Invalid ticket ID format.' });
+        }
+        const parsed = updateTicketBodySchema.safeParse(req.body);
+        if (!parsed.success) {
+            return res.status(400).json({ error: parsed.error.issues[0]?.message || 'Invalid parameters.' });
+        }
+        const { status, category } = parsed.data;
+        const ticket = await prisma_js_1.default.ticket.findUnique({
+            where: { id },
+        });
+        if (!ticket) {
+            return res.status(404).json({ error: 'Ticket not found.' });
+        }
+        const data = {};
+        if (status !== undefined) {
+            data.status = status;
+        }
+        if (category !== undefined) {
+            const categoryMap = {
+                'General Question': 'GENERAL',
+                'Technical Question': 'TECHNICAL',
+                'Refund Request': 'REFUND',
+            };
+            data.category = category ? categoryMap[category] : null;
+        }
+        const updatedTicket = await prisma_js_1.default.ticket.update({
+            where: { id },
+            data,
+            include: {
+                assignedTo: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        role: true,
+                    },
+                },
+            },
+        });
+        return res.json(updatedTicket);
+    }
+    catch (error) {
+        next(error);
+    }
+});
 router.get('/:id', requireSession, async (req, res, next) => {
     try {
         const id = Number(req.params.id);
