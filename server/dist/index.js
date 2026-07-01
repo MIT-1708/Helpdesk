@@ -14,6 +14,7 @@ const users_js_1 = __importDefault(require("./routes/users.js"));
 const webhook_js_1 = __importDefault(require("./routes/webhook.js"));
 const tickets_js_1 = __importDefault(require("./routes/tickets.js"));
 const replies_js_1 = __importDefault(require("./routes/replies.js"));
+const queue_js_1 = require("./queue.js");
 // Validate environment variables first
 const env_validator_js_1 = require("./utils/env-validator.js");
 (0, env_validator_js_1.validateEnv)();
@@ -117,7 +118,13 @@ app.use((err, req, res, next) => {
     console.error('Unhandled Server Error:', err);
     res.status(500).json({ error: 'Internal server error' });
 });
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
     console.log(`[server] Server running on http://localhost:${PORT}`);
+    try {
+        await (0, queue_js_1.startQueue)();
+    }
+    catch (err) {
+        console.error('Failed to start pg-boss queue:', err);
+    }
 });
 // Trigger watch reload to pick up the updated GROQ_API_KEY environment variable.

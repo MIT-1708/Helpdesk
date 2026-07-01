@@ -8,8 +8,7 @@ const prisma_js_1 = __importDefault(require("../prisma.js"));
 const zod_1 = require("zod");
 const validate_js_1 = require("../middleware/validate.js");
 const core_1 = require("@helpdesk/core");
-const groq_1 = require("@ai-sdk/groq");
-const ai_1 = require("ai");
+const queue_js_1 = require("../queue.js");
 const router = express_1.default.Router();
 const inboundEmailSchema = zod_1.z.object({
     from: zod_1.z.string().email('Invalid sender email format.').max(255, 'Email cannot exceed 255 characters.'),
@@ -84,60 +83,11 @@ router.post('/inbound-email', (0, validate_js_1.validateBody)(inboundEmailSchema
     });
     // Trigger background classification if no category is specified
     if (!category) {
-        classifyTicketInBackground(newTicket).catch((err) => {
-            console.error('Failed to trigger background ticket classification:', err);
-        });
+        await queue_js_1.boss.send('classify-ticket', { ticketId: newTicket.id });
     }
     return res.json({
         message: 'New ticket created from inbound email successfully.',
         ticket: newTicket,
     });
 });
-async function classifyTicketInBackground(ticket) {
-    const { id: ticketId, subject, body } = ticket;
-    try {
-        const groqApiKey = process.env.GROQ_API_KEY;
-        if (!groqApiKey) {
-            console.warn('AI ticket classification skipped: GROQ_API_KEY is missing.');
-            return;
-        }
-        const groq = (0, groq_1.createGroq)({ apiKey: groqApiKey });
-        const systemPrompt = `You are an expert customer support triaging assistant. Your task is to analyze the support ticket (subject and body) and classify it into exactly one of the following categories:
-- GENERAL (for general inquiries, questions, account help, feedback, etc.)
-- TECHNICAL (for server issues, bugs, system errors, login issues, database connection errors, etc.)
-- REFUND (for billing inquiries, invoice issues, payment problems, refund requests, cancellation queries, etc.)
-
-Rules:
-- Output exactly one of these three words: GENERAL, TECHNICAL, or REFUND.
-- Do NOT include any punctuation, explanation, preamble, or extra text. Output ONLY the uppercase word.`;
-        const { text } = await (0, ai_1.generateText)({
-            model: groq('llama-3.3-70b-versatile'),
-            system: systemPrompt,
-            prompt: `Subject: ${subject}\nBody: ${body}`,
-        });
-        const category = text.trim().toUpperCase();
-        // Map upper enum name to database values
-        const categoryMapping = {
-            GENERAL: 'GENERAL',
-            TECHNICAL: 'TECHNICAL',
-            REFUND: 'REFUND',
-        };
-        const targetCategory = categoryMapping[category];
-        if (targetCategory) {
-            await prisma_js_1.default.ticket.update({
-                where: { id: ticketId },
-                data: {
-                    category: targetCategory,
-                },
-            });
-            console.log(`[AI Classification] Ticket #${ticketId} automatically classified as ${category}`);
-        }
-        else {
-            console.warn(`[AI Classification] AI returned invalid category classification for ticket #${ticketId}: "${text}"`);
-        }
-    }
-    catch (error) {
-        console.error(`[AI Classification] Failed to automatically classify ticket #${ticketId}:`, error);
-    }
-}
 exports.default = router;

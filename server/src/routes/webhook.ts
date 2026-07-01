@@ -3,9 +3,7 @@ import prisma from '../prisma.js';
 import { z } from 'zod';
 import { validateBody } from '../middleware/validate.js';
 import { TicketStatus, TicketCategory } from '@helpdesk/core';
-import { createGroq } from '@ai-sdk/groq';
-import { generateText } from 'ai';
-import { Ticket } from '@prisma/client';
+import { boss } from '../queue.js';
 
 const router = express.Router();
 
@@ -91,9 +89,7 @@ router.post('/inbound-email', validateBody(inboundEmailSchema), async (req, res)
 
   // Trigger background classification if no category is specified
   if (!category) {
-    classifyTicketInBackground(newTicket).catch((err) => {
-      console.error('Failed to trigger background ticket classification:', err);
-    });
+    await boss.send('classify-ticket', { ticketId: newTicket.id });
   }
 
   return res.json({
@@ -101,58 +97,5 @@ router.post('/inbound-email', validateBody(inboundEmailSchema), async (req, res)
     ticket: newTicket,
   });
 });
-
-async function classifyTicketInBackground(ticket: Ticket) {
-  const { id: ticketId, subject, body } = ticket;
-  try {
-    const groqApiKey = process.env.GROQ_API_KEY;
-    if (!groqApiKey) {
-      console.warn('AI ticket classification skipped: GROQ_API_KEY is missing.');
-      return;
-    }
-
-    const groq = createGroq({ apiKey: groqApiKey });
-
-    const systemPrompt = `You are an expert customer support triaging assistant. Your task is to analyze the support ticket (subject and body) and classify it into exactly one of the following categories:
-- GENERAL (for general inquiries, questions, account help, feedback, etc.)
-- TECHNICAL (for server issues, bugs, system errors, login issues, database connection errors, etc.)
-- REFUND (for billing inquiries, invoice issues, payment problems, refund requests, cancellation queries, etc.)
-
-Rules:
-- Output exactly one of these three words: GENERAL, TECHNICAL, or REFUND.
-- Do NOT include any punctuation, explanation, preamble, or extra text. Output ONLY the uppercase word.`;
-
-    const { text } = await generateText({
-      model: groq('llama-3.3-70b-versatile'),
-      system: systemPrompt,
-      prompt: `Subject: ${subject}\nBody: ${body}`,
-    });
-
-    const category = text.trim().toUpperCase();
-
-    // Map upper enum name to database values
-    const categoryMapping: Record<string, string> = {
-      GENERAL: 'GENERAL',
-      TECHNICAL: 'TECHNICAL',
-      REFUND: 'REFUND',
-    };
-
-    const targetCategory = categoryMapping[category];
-
-    if (targetCategory) {
-      await prisma.ticket.update({
-        where: { id: ticketId },
-        data: {
-          category: targetCategory as any,
-        },
-      });
-      console.log(`[AI Classification] Ticket #${ticketId} automatically classified as ${category}`);
-    } else {
-      console.warn(`[AI Classification] AI returned invalid category classification for ticket #${ticketId}: "${text}"`);
-    }
-  } catch (error) {
-    console.error(`[AI Classification] Failed to automatically classify ticket #${ticketId}:`, error);
-  }
-}
 
 export default router;

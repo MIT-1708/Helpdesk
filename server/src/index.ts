@@ -10,6 +10,7 @@ import usersRouter from './routes/users.js';
 import webhookRouter from './routes/webhook.js';
 import ticketsRouter from './routes/tickets.js';
 import repliesRouter from './routes/replies.js';
+import { startQueue } from './queue.js';
 
 // Validate environment variables first
 import { validateEnv } from './utils/env-validator.js';
@@ -135,8 +136,13 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   res.status(500).json({ error: 'Internal server error' });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`[server] Server running on http://localhost:${PORT}`);
+  try {
+    await startQueue();
+  } catch (err) {
+    console.error('Failed to start pg-boss queue:', err);
+  }
 });
 
 // Trigger watch reload to pick up the updated GROQ_API_KEY environment variable.
